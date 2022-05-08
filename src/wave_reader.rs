@@ -150,6 +150,7 @@ impl<TReader: Read + Seek> WavInfo for WavReaderFloat<TReader> {
 
 impl<TReader: Read + Seek> WavReader<f32> for WavReaderFloat<TReader> {
     fn read_sample(&mut self, sample: u32, channel: u16) -> Result<f32> {
+        // Should reader be a Refcell to allow interior mutability?
         let reader = &self.wrapped.reader;
 
         if sample >= self.len_samples() {
