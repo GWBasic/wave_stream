@@ -8,7 +8,7 @@ pub mod wave_reader;
 
 use reader::ReadEx;
 use wave_header::{SampleFormat, WavHeader};
-use wave_reader::{OpenWav, WavInfo, WavReader};
+use wave_reader::{OpenWav, RandomAccessWavReader};
 
 pub fn from_file(file_path: &str) -> Result<OpenWav<BufReader<File>>> {
     let file = File::open(file_path)?;
@@ -59,22 +59,22 @@ mod tests {
     #[test]
     fn read_float_sanity() {
         let open_wav = from_file("test_data/short_float.wav").unwrap();
-        let wave_reader_float = open_wav.read_float().unwrap();
-        assert_eq!(SampleFormat::Float, wave_reader_float.open_wav().sample_format());
-        assert_eq!(1, wave_reader_float.open_wav().channels());
-        assert_eq!(32, wave_reader_float.open_wav().bits_per_sample());
-        assert_eq!(48000, wave_reader_float.open_wav().sample_rate());
-        assert_eq!(1267, wave_reader_float.open_wav().len_samples());
+        let wave_reader_float = open_wav.as_random_access_float().unwrap();
+        assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
+        assert_eq!(1, wave_reader_float.info().channels());
+        assert_eq!(32, wave_reader_float.info().bits_per_sample());
+        assert_eq!(48000, wave_reader_float.info().sample_rate());
+        assert_eq!(1267, wave_reader_float.info().len_samples());
 
         let open_wav = from_file("test_data/short_24.wav").unwrap();
-        let read_float_result = open_wav.read_float();
+        let read_float_result = open_wav.as_random_access_float();
         match read_float_result {
             Result::Err(_) => {},
             _ => panic!("Should not be able to read file")
         }
 
         let open_wav = from_file("test_data/short_16.wav").unwrap();
-        let read_float_result = open_wav.read_float();
+        let read_float_result = open_wav.as_random_access_float();
         match read_float_result {
             Result::Err(_) => {},
             _ => panic!("Should not be able to read file")
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn read_float() {
         let open_wav = from_file("test_data/short_float.wav").unwrap();
-        let mut wave_reader_float = open_wav.read_float().unwrap();
+        let mut wave_reader_float = open_wav.as_random_access_float().unwrap();
 
         let expected_sample = f32::from_le_bytes([0x6D, 0xB4, 0xA7, 0xBC]);
         let actual_sample = wave_reader_float.read_sample(0, 0).unwrap();
@@ -95,7 +95,7 @@ mod tests {
         assert_eq!(expected_sample, actual_sample, "Wrong sample read at sample 0, channel 0");
 
         let expected_sample = f32::from_le_bytes([0xA0, 0xB5, 0x31, 0xBC]);
-        let actual_sample = wave_reader_float.read_sample(wave_reader_float.open_wav().len_samples() - 1, 0).unwrap();
+        let actual_sample = wave_reader_float.read_sample(wave_reader_float.info().len_samples() - 1, 0).unwrap();
         assert_eq!(expected_sample, actual_sample, "Wrong sample read at sample 0, channel 0");
     }
 }

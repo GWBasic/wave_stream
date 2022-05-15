@@ -11,21 +11,12 @@ pub struct OpenWav<TReader: Read + Seek> {
     data_length: u32,
 }
 
-pub trait WavInfo {
-    fn sample_format(&self) -> SampleFormat;
-    fn channels(&self) -> u16;
-    fn sample_rate(&self) -> u32;
-    fn bits_per_sample(&self) -> u16;
-    fn bytes_per_sample(&self) -> u16;
-    fn len_samples(&self) -> u32;
-}
-
-pub struct WavReaderFloat<TReader: Read + Seek> {
+pub struct RandomAccessWavReaderFloat<TReader: Read + Seek> {
     open_wav: OpenWav<TReader>
 }
 
-pub trait WavReader<T, TReader: Read + Seek> {
-    fn open_wav(&self) -> &OpenWav<TReader>;
+pub trait RandomAccessWavReader<T, TReader: Read + Seek> {
+    fn info(&self) -> &OpenWav<TReader>;
     fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T>;
 }
 
@@ -53,45 +44,43 @@ impl<TReader: Read + Seek> OpenWav<TReader> {
         })
     }
 
-    pub fn read_float(self) -> Result<WavReaderFloat<TReader>> {
+    pub fn as_random_access_float(self) -> Result<RandomAccessWavReaderFloat<TReader>> {
         if self.header.sample_format == SampleFormat::Float {
-            Ok(WavReaderFloat {
+            Ok(RandomAccessWavReaderFloat {
                 open_wav: self
             })
         } else {
             Err(Error::new(ErrorKind::InvalidData, "Converting to float unsupported"))
         }
     }
-}
 
-impl<TReader: Read + Seek> WavInfo for OpenWav<TReader> {
-    fn sample_format(&self) -> SampleFormat {
+    pub fn sample_format(&self) -> SampleFormat {
         self.header.sample_format
     }
 
-    fn channels(&self) -> u16 {
+    pub fn channels(&self) -> u16 {
         self.header.channels
     }
 
-    fn sample_rate(&self) -> u32 {
+    pub fn sample_rate(&self) -> u32 {
         self.header.sample_rate
     }
 
-    fn bits_per_sample(&self) -> u16 {
+    pub fn bits_per_sample(&self) -> u16 {
         self.header.bits_per_sample
     }
 
-    fn bytes_per_sample(&self) -> u16 {
+    pub fn bytes_per_sample(&self) -> u16 {
         self.header.bits_per_sample / 8
     }
 
-    fn len_samples(&self) -> u32 {
+    pub fn len_samples(&self) -> u32 {
         self.data_length / (self.header.bits_per_sample / 8) as u32 / self.header.channels as u32
     }
 }
 
-impl<TReader: Read + Seek> WavReader<f32, TReader> for WavReaderFloat<TReader> {
-    fn open_wav(&self) -> &OpenWav<TReader> {
+impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessWavReaderFloat<TReader> {
+    fn info(&self) -> &OpenWav<TReader> {
         &(self.open_wav)
     }
 
