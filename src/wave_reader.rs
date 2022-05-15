@@ -1,4 +1,5 @@
 use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom };
+use std::iter::IntoIterator;
 
 use crate::ReadEx;
 use crate::SampleFormat;
@@ -55,8 +56,7 @@ impl<TReader: Read + Seek> OpenWav<TReader> {
         self.assert_float()?;
 
         Ok(StreamWavReaderFloat {
-            open_wav: self,
-            current_sample: 0
+            open_wav: self
         })
     }
 
@@ -119,7 +119,6 @@ impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessW
 
 pub struct StreamWavReaderFloat<TReader: Read + Seek> {
     open_wav: OpenWav<TReader>,
-    current_sample: u32,
 }
 
 pub trait StreamWavReader<T, TReader: Read + Seek> {
@@ -131,8 +130,25 @@ impl<TReader: Read + Seek> StreamWavReader<f32, TReader> for StreamWavReaderFloa
         &(self.open_wav)
     }
 }
+ 
+impl<TReader: Read + Seek> IntoIterator for StreamWavReaderFloat<TReader> {
+    type Item = Result<Vec<f32>>;
+    type IntoIter = StreamWavReaderFloatIterator<TReader>;
 
-impl<TReader: Read + Seek> Iterator for StreamWavReaderFloat<TReader> {
+    fn into_iter(self) -> Self::IntoIter {
+        StreamWavReaderFloatIterator {
+            open_wav: self.open_wav,
+            current_sample: 0
+        }
+    }
+}
+
+pub struct StreamWavReaderFloatIterator<TReader: Read + Seek> {
+    open_wav: OpenWav<TReader>,
+    current_sample: u32,
+}
+
+impl<TReader: Read + Seek> Iterator for StreamWavReaderFloatIterator<TReader> {
     type Item = Result<Vec<f32>>;
 
     fn next(&mut self) -> Option<Self::Item> {

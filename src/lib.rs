@@ -128,7 +128,7 @@ mod tests {
     fn stream_float() {
         let mut current_sample: usize = 0;
         let open_wav = from_file("test_data/short_float.wav").unwrap();
-        for samples_result in open_wav.get_stream_float_reader().unwrap() {
+        for samples_result in open_wav.get_stream_float_reader().unwrap().into_iter() {
             let samples = samples_result.unwrap();
 
             assert_eq!(1, samples.len(), "Wrong number of samples");
