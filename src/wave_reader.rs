@@ -73,15 +73,20 @@ impl<TReader: Read + Seek> OpenWavReader<TReader> {
     }
 
     pub fn bits_per_sample(&self) -> u16 {
-        self.header.bits_per_sample
+        self.bytes_per_sample() * 8
     }
 
     pub fn bytes_per_sample(&self) -> u16 {
-        self.header.bits_per_sample / 8
+        match self.header.sample_format {
+            SampleFormat::Float => 4,
+            SampleFormat:: Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1
+        }
     }
 
     pub fn len_samples(&self) -> u32 {
-        self.data_length / (self.header.bits_per_sample / 8) as u32 / self.header.channels as u32
+        self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
     }
 }
 

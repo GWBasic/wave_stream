@@ -68,19 +68,32 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     }
 
     pub fn bits_per_sample(&self) -> u16 {
-        self.header.bits_per_sample
+        self.bytes_per_sample() * 8
     }
 
     pub fn bytes_per_sample(&self) -> u16 {
-        self.header.bits_per_sample / 8
+        match self.header.sample_format {
+            SampleFormat::Float => 4,
+            SampleFormat:: Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1
+        }
     }
 
-    pub fn cleanup(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> Result<()> {
+        // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
         self.writer.seek(SeekFrom::Start(self.data_start as u64))?;
         self.writer.write_u32(chunk_size)?;
 
+        // RIFF header
+        self.writer.seek(SeekFrom::Start(4))?;
+        self.writer.write_u32(chunk_size + 32 - 8)?;
+
         self.chunk_size_written = true;
+
+        self.writer.flush()?;
+
         Ok(())
     }
 }
@@ -88,7 +101,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
 impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
     fn drop(&mut self) {
         if !self.chunk_size_written {
-            self.cleanup().unwrap();
+            self.flush().unwrap();
         }
     }
 }

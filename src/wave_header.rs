@@ -19,7 +19,7 @@ pub struct WavHeader {
     pub sample_format: SampleFormat,
     pub channels: u16,
     pub sample_rate: u32,
-    pub bits_per_sample: u16
+    //pub bits_per_sample: u16
 }
 
 impl WavHeader {
@@ -68,7 +68,6 @@ impl WavHeader {
             sample_format,
             channels,
             sample_rate,
-            bits_per_sample
         })
     }
 

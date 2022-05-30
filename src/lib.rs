@@ -42,7 +42,7 @@ pub fn write_wav_to_file_path(file_path: &str, header: WavHeader) -> Result<Open
 pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
 
     // Write RIFF header and format
-    writer.write(b"RIFFWAVE")?;
+    writer.write(b"RIFF    WAVE")?;
 
     WavHeader::to_writer(&mut writer, &header)?;
 
@@ -52,6 +52,7 @@ pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::remove_file;
 
     #[test]
     fn open_sanity() {
@@ -170,5 +171,47 @@ mod tests {
         }
 
         assert_eq!(1267, current_sample, "Wrong number of samples read");
+    }
+
+    #[test]
+    fn write_sanity() {
+        write_sanity_test().unwrap();
+    }
+
+    fn write_sanity_test() -> Result<()> {
+        let header = WavHeader {
+            sample_format: SampleFormat::Float,
+            channels: 10,
+            sample_rate: 96000
+        };
+        let mut open_wav = write_wav_to_file_path("test_data/write_sanity.wav", header)?;
+
+        assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format");
+        assert_eq!(10, open_wav.channels(), "Wrong channels");
+        assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
+        assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
+        assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
+
+        open_wav.flush()?;
+
+        let open_wav = read_wav_from_file_path("test_data/write_sanity.wav")?;
+
+        assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format when reading");
+        assert_eq!(10, open_wav.channels(), "Wrong channels when reading");
+        assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate when reading");
+        assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample when reading");
+        assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample when reading");
+        assert_eq!(0, open_wav.len_samples(), "Wrong length when reading");
+
+
+        remove_file("test_data/write_sanity.wav")?;
+
+        Ok(())
+    }
+
+
+    #[test]
+    fn write_random() {
+        panic!("Incomplete");
     }
 }
