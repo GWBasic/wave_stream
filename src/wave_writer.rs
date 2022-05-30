@@ -1,20 +1,20 @@
-use std::fs::File;
-use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, };
+use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
 //use std::iter::IntoIterator;
 
 use crate::WriteEx;
 use crate::SampleFormat;
 use crate::WavHeader;
 
-pub struct OpenWavWriter {
-    writer: File,
+pub struct OpenWavWriter<TWriter: Write + Seek> {
+    writer: TWriter,
     header: WavHeader,
     data_start: u32,
-    chunk_size_written: bool
+    chunk_size_written: bool,
+    samples_written: u32
 }
 
-impl OpenWavWriter {
-    pub fn new(mut writer: File, header: WavHeader) -> Result<OpenWavWriter> {
+impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
+    pub fn new(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
         writer.write_str("data")?;
         writer.write_u32(0)?;
 
@@ -24,7 +24,8 @@ impl OpenWavWriter {
             writer,
             header,
             data_start,
-            chunk_size_written: false
+            chunk_size_written: false,
+            samples_written: 0
         })
     }
 
@@ -36,7 +37,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavReaderFloat> {
+    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavReaderFloat<TWriter>> {
         self.assert_float()?;
 
         Ok(RandomAccessWavReaderFloat {
@@ -75,7 +76,7 @@ impl OpenWavWriter {
     }
 
     pub fn cleanup(&mut self) -> Result<()> {
-        let chunk_size = self.writer.metadata()?.len() as u32 - self.data_start;
+        let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
         self.writer.seek(SeekFrom::Start(self.data_start as u64))?;
         self.writer.write_u32(chunk_size)?;
 
@@ -84,7 +85,7 @@ impl OpenWavWriter {
     }
 }
 
-impl Drop for OpenWavWriter {
+impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
     fn drop(&mut self) {
         if !self.chunk_size_written {
             self.cleanup().unwrap();
@@ -93,17 +94,17 @@ impl Drop for OpenWavWriter {
 }
 
 
-pub trait RandomAccessWavWriter<T> {
-    fn info(&self) -> &OpenWavWriter;
+pub trait RandomAccessWavWriter<T, TWriter: Write + Seek> {
+    fn info(&self) -> &OpenWavWriter<TWriter>;
     fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()>;
 }
 
-pub struct RandomAccessWavReaderFloat {
-    open_wav: OpenWavWriter
+pub struct RandomAccessWavReaderFloat<TWriter: Write + Seek> {
+    open_wav: OpenWavWriter<TWriter>
 }
 
-impl RandomAccessWavWriter<f32> for RandomAccessWavReaderFloat {
-    fn info(&self) -> &OpenWavWriter {
+impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccessWavReaderFloat<TWriter> {
+    fn info(&self) -> &OpenWavWriter<TWriter> {
         &(self.open_wav)
     }
 
@@ -112,22 +113,23 @@ impl RandomAccessWavWriter<f32> for RandomAccessWavReaderFloat {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
 
+        // Pad the file if needed
+        if sample > self.open_wav.samples_written {
+            self.open_wav.writer.seek(SeekFrom::End(0))?;
+
+            let padding_size = (self.open_wav.samples_written - sample) * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
+            let padding = vec![0u8; padding_size as usize];
+            self.open_wav.writer.write(&padding)?;
+        }
+
         let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
         let sample_in_bytes = (sample_in_channels as u64) * (self.open_wav.bytes_per_sample() as u64);
         let position = (self.open_wav.data_start as u64) + sample_in_bytes;
 
-        // Pad the file if needed
-        let len = self.open_wav.writer.metadata()?.len();
-        if position > len {
-            let channels_to_pad = self.open_wav.channels() - (channel + 1);
-            let size = position + ((channels_to_pad * self.open_wav.bytes_per_sample()) as u64);
-
-            self.open_wav.writer.set_len(size)?;
-        }
-
         self.open_wav.writer.seek(SeekFrom::Start(position as u64))?;
         
         self.open_wav.chunk_size_written = false;
+        self.open_wav.samples_written = sample;
         self.open_wav.writer.write_f32(value)
     }
 }

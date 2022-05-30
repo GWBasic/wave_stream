@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{ BufReader, BufWriter, Error, ErrorKind, Read, Result, Write, Seek };
+use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Write, Seek };
 use std::str;
 
 pub mod reader;
@@ -32,9 +32,14 @@ pub fn read_wav<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWavRead
     OpenWavReader::new(reader, header)
 }
 
-pub fn write_wav_to_file_path(file_path: &str, header: WavHeader) -> Result<OpenWavWriter> {
+pub fn write_wav_to_file_path(file_path: &str, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {
     let file = File::create(file_path)?;
-    let mut writer = BufWriter::new(file);
+    let writer = BufWriter::new(file);
+
+    write_wav(writer, header)
+}
+
+pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
 
     // Write RIFF header and format
     writer.write(b"RIFFWAVE")?;
