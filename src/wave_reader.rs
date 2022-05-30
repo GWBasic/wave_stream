@@ -5,15 +5,15 @@ use crate::ReadEx;
 use crate::SampleFormat;
 use crate::WavHeader;
 
-pub struct OpenWav<TReader: Read> {
+pub struct OpenWavReader<TReader: Read> {
     reader: TReader,
     header: WavHeader,
     data_start: u32,
     data_length: u32,
 }
 
-impl<TReader: Read + Seek> OpenWav<TReader> {
-    pub fn new(mut reader: TReader, header: WavHeader) -> Result<OpenWav<TReader>> {
+impl<TReader: Read + Seek> OpenWavReader<TReader> {
+    pub fn new(mut reader: TReader, header: WavHeader) -> Result<OpenWavReader<TReader>> {
         'find_data_chunk: loop {
             let chunk_name = reader.read_str(4)?;
             
@@ -28,7 +28,7 @@ impl<TReader: Read + Seek> OpenWav<TReader> {
         let data_length = reader.read_u32()?;
         let data_start = reader.stream_position()? as u32;
 
-        Ok(OpenWav {
+        Ok(OpenWavReader {
             reader,
             header,
             data_start,
@@ -86,16 +86,16 @@ impl<TReader: Read + Seek> OpenWav<TReader> {
 }
 
 pub trait RandomAccessWavReader<T, TReader: Read + Seek> {
-    fn info(&self) -> &OpenWav<TReader>;
+    fn info(&self) -> &OpenWavReader<TReader>;
     fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T>;
 }
 
 pub struct RandomAccessWavReaderFloat<TReader: Read + Seek> {
-    open_wav: OpenWav<TReader>
+    open_wav: OpenWavReader<TReader>
 }
 
 impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessWavReaderFloat<TReader> {
-    fn info(&self) -> &OpenWav<TReader> {
+    fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 
@@ -118,15 +118,15 @@ impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessW
 }
 
 pub struct StreamWavReaderFloat<TReader: Read + Seek> {
-    open_wav: OpenWav<TReader>,
+    open_wav: OpenWavReader<TReader>,
 }
 
 pub trait StreamWavReader<T, TReader: Read + Seek> {
-    fn info(&self) -> &OpenWav<TReader>;
+    fn info(&self) -> &OpenWavReader<TReader>;
 }
 
 impl<TReader: Read + Seek> StreamWavReader<f32, TReader> for StreamWavReaderFloat<TReader> {
-    fn info(&self) -> &OpenWav<TReader> {
+    fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 }
@@ -144,7 +144,7 @@ impl<TReader: Read + Seek> IntoIterator for StreamWavReaderFloat<TReader> {
 }
 
 pub struct StreamWavReaderFloatIterator<TReader: Read + Seek> {
-    open_wav: OpenWav<TReader>,
+    open_wav: OpenWavReader<TReader>,
     current_sample: u32,
 }
 

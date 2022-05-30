@@ -1,23 +1,27 @@
 use std::fs::File;
-use std::io::{ BufReader, ErrorKind, Read, Result, Seek };
+use std::io::{ BufReader, BufWriter, Error, ErrorKind, Read, Result, Write, Seek };
 use std::str;
 
 pub mod reader;
 pub mod wave_header;
 pub mod wave_reader;
+pub mod wave_writer;
+pub mod writer;
 
 use reader::ReadEx;
 use wave_header::*;
 use wave_reader::*;
+use wave_writer::*;
+use writer::WriteEx;
 
-pub fn from_file(file_path: &str) -> Result<OpenWav<BufReader<File>>> {
+pub fn from_file(file_path: &str) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
     from_reader(reader)
 }
 
-pub fn from_reader<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWav<TReader>> {
+pub fn from_reader<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str("RIFF", ErrorKind::InvalidInput, "Not a WAVE file (Missing RIFF Header)")?;
     let _file_length = reader.read_u32()?;
@@ -25,7 +29,26 @@ pub fn from_reader<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWav<
 
     let header = WavHeader::from_reader(&mut reader)?;
 
-    Ok(OpenWav::new(reader, header)?)
+    Ok(OpenWavReader::new(reader, header)?)
+}
+
+pub fn to_file(file_path: &str, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {
+    let file = File::create(file_path)?;
+    let writer = BufWriter::new(file);
+
+    to_writer(writer, header)
+}
+
+pub fn to_writer<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
+
+    // Write RIFF header and format
+    writer.write(b"RIFFWAVE")?;
+
+    WavHeader::to_writer(&mut writer, &header)?;
+
+    //Ok(OpenWavWriter::new(writer, header)?)
+    //Err(ErrorKind::Unsupported);
+    Err(Error::new(ErrorKind::Unsupported, "Incomplete"))
 }
 
 #[cfg(test)]

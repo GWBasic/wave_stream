@@ -1,8 +1,8 @@
 // Influenced by https://github.com/kujirahand/wav_io/blob/main/src/header.rs
 
-use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom };
+use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom, Write };
 
-use crate::ReadEx;
+use crate::{ ReadEx, WriteEx };
 
 /// Sample Format
 #[derive(Debug,Copy,Clone,PartialEq)]
@@ -70,5 +70,37 @@ impl WavHeader {
             sample_rate,
             bits_per_sample
         })
+    }
+
+    pub fn to_writer(writer: &mut impl Write, header: &WavHeader) -> Result<()> {
+        writer.write(b"fmt ")?;
+        writer.write_u32(16)?;
+
+        let audio_format: u16 = match header.sample_format {
+            SampleFormat::Float => 3,
+            _ => 1
+        };
+
+        writer.write_u16(audio_format)?;
+        writer.write_u16(header.channels)?;
+        writer.write_u32(header.sample_rate)?;
+
+        let bytes_per_sample: u16 = match header.sample_format {
+            SampleFormat::Float => 4,
+            SampleFormat:: Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1
+        };
+
+        let bytes_per_sec: u32 = header.sample_rate * ((header.channels * bytes_per_sample) as u32);
+        writer.write_u32(bytes_per_sec)?;
+
+        let data_block_size: u16 = (header.channels as u16) * (bytes_per_sample as u16);
+        writer.write_u16(data_block_size)?;
+
+        let bits_per_sample: u16 = bytes_per_sample * 8;
+        writer.write_u16(bits_per_sample)?;
+
+        Ok(())
     }
 }
