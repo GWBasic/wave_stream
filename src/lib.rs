@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{ BufReader, BufWriter, Error, ErrorKind, Read, Result, Write, Seek };
+use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Write, Seek };
 use std::str;
 
 pub mod reader;
@@ -53,6 +53,7 @@ pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) 
 mod tests {
     use super::*;
     use std::fs::remove_file;
+    use tempfile::tempdir;
 
     #[test]
     fn open_sanity() {
@@ -173,84 +174,86 @@ mod tests {
         assert_eq!(1267, current_sample, "Wrong number of samples read");
     }
 
-    #[test]
-    fn write_sanity() {
-        // TODO: Encapsulate this in a callback
-        let result = write_sanity_test();
+    type FileTestCallback = fn(path: &str) -> Result<()>;
 
-        let _ignored = remove_file("test_data/write_sanity.wav");
+    fn test_with_file(file_test_callback: FileTestCallback) {
+        let temp_dir = tempdir().unwrap();
+        
+        {
+            let path = temp_dir.path().join("tempwav.wav");
 
-        result.unwrap();
+            // TODO: Use the Path struct
+            // https://github.com/GWBasic/wave_stream/issues/4
+            let path_str = path.to_str().unwrap();
+
+            file_test_callback(path_str).unwrap();
+        }
     }
 
-    fn write_sanity_test() -> Result<()> {
-        let header = WavHeader {
-            sample_format: SampleFormat::Float,
-            channels: 10,
-            sample_rate: 96000
-        };
-        let mut open_wav = write_wav_to_file_path("test_data/write_sanity.wav", header)?;
+    #[test]
+    fn write_sanity() {
+        test_with_file(|path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Float,
+                channels: 10,
+                sample_rate: 96000
+            };
+            let mut open_wav = write_wav_to_file_path(path, header)?;
 
-        assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format");
-        assert_eq!(10, open_wav.channels(), "Wrong channels");
-        assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
-        assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
-        assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
+            assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format");
+            assert_eq!(10, open_wav.channels(), "Wrong channels");
+            assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
+            assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
+            assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
 
-        open_wav.flush()?;
+            open_wav.flush()?;
 
-        let open_wav = read_wav_from_file_path("test_data/write_sanity.wav")?;
+            let open_wav = read_wav_from_file_path(path)?;
 
-        assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format when reading");
-        assert_eq!(10, open_wav.channels(), "Wrong channels when reading");
-        assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate when reading");
-        assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample when reading");
-        assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample when reading");
-        assert_eq!(0, open_wav.len_samples(), "Wrong length when reading");
+            assert_eq!(SampleFormat::Float, open_wav.sample_format(), "Wrong sample format when reading");
+            assert_eq!(10, open_wav.channels(), "Wrong channels when reading");
+            assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate when reading");
+            assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample when reading");
+            assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample when reading");
+            assert_eq!(0, open_wav.len_samples(), "Wrong length when reading");
 
-        Ok(())
+            Ok(())
+        });
     }
 
     #[test]
     fn write_random() {
-        // TODO: Encapsulate this in a callback
-        let result = write_random_test();
+        test_with_file(|path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Float,
+                channels: 10,
+                sample_rate: 96000
+            };
+            let open_wav = write_wav_to_file_path(path, header)?;
 
-        let _ignored = remove_file("test_data/write_random.wav");
+            let mut writer = open_wav.get_random_access_float_writer()?;
 
-        result.unwrap();
-    }
- 
-    fn write_random_test() -> Result<()> {
-        let header = WavHeader {
-            sample_format: SampleFormat::Float,
-            channels: 10,
-            sample_rate: 96000
-        };
-        let open_wav = write_wav_to_file_path("test_data/write_random.wav", header)?;
-
-        let mut writer = open_wav.get_random_access_float_writer()?;
-
-        for sample in 0..100 {
-            for channel in 0..writer.info().channels() {
-                writer.write_sample(sample, channel, (sample as f32 * 10f32) + channel as f32)?;
+            for sample in 0..100 {
+                for channel in 0..writer.info().channels() {
+                    writer.write_sample(sample, channel, (sample as f32 * 10f32) + channel as f32)?;
+                }
             }
-        }
 
-        writer.flush()?;
+            writer.flush()?;
 
-        let open_wav = read_wav_from_file_path("test_data/write_random.wav")?;
-        assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
+            let open_wav = read_wav_from_file_path(path)?;
+            assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
 
-        let mut reader = open_wav.get_random_access_float_reader()?;
+            let mut reader = open_wav.get_random_access_float_reader()?;
 
-        for sample in 0..100 {
-            for channel in 0..reader.info().channels() {
-                let value = reader.read_sample(sample, channel)?;
-                assert_eq!((sample as f32 * 10f32) + channel as f32, value, "Wrong sample read");
+            for sample in 0..100 {
+                for channel in 0..reader.info().channels() {
+                    let value = reader.read_sample(sample, channel)?;
+                    assert_eq!((sample as f32 * 10f32) + channel as f32, value, "Wrong sample read");
+                }
             }
-        }
 
-        Ok(())
+            Ok(())
+        });
     }
 }
