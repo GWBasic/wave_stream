@@ -83,7 +83,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
-        self.writer.seek(SeekFrom::Start(self.data_start as u64))?;
+        self.writer.seek(SeekFrom::Start(self.data_start as u64 - 4u64))?;
         self.writer.write_u32(chunk_size)?;
 
         // RIFF header
@@ -110,6 +110,7 @@ impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
 pub trait RandomAccessWavWriter<T, TWriter: Write + Seek> {
     fn info(&self) -> &OpenWavWriter<TWriter>;
     fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()>;
+    fn flush(&mut self) -> Result<()>;
 }
 
 pub struct RandomAccessWavReaderFloat<TWriter: Write + Seek> {
@@ -127,12 +128,13 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
         }
 
         // Pad the file if needed
-        if sample > self.open_wav.samples_written {
+        if sample >= self.open_wav.samples_written {
             self.open_wav.writer.seek(SeekFrom::End(0))?;
 
-            let padding_size = (self.open_wav.samples_written - sample) * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
+            let padding_size = (self.open_wav.samples_written - sample + 1) * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
             let padding = vec![0u8; padding_size as usize];
             self.open_wav.writer.write(&padding)?;
+            self.open_wav.samples_written = sample + 1;
         }
 
         let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
@@ -142,7 +144,10 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
         self.open_wav.writer.seek(SeekFrom::Start(position as u64))?;
         
         self.open_wav.chunk_size_written = false;
-        self.open_wav.samples_written = sample;
         self.open_wav.writer.write_f32(value)
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        self.open_wav.flush()
     }
 }

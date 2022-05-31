@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Write, Seek };
+use std::io::{ BufReader, BufWriter, Error, ErrorKind, Read, Result, Write, Seek };
 use std::str;
 
 pub mod reader;
@@ -175,7 +175,12 @@ mod tests {
 
     #[test]
     fn write_sanity() {
-        write_sanity_test().unwrap();
+        // TODO: Encapsulate this in a callback
+        let result = write_sanity_test();
+
+        let _ignored = remove_file("test_data/write_sanity.wav");
+
+        result.unwrap();
     }
 
     fn write_sanity_test() -> Result<()> {
@@ -203,15 +208,49 @@ mod tests {
         assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample when reading");
         assert_eq!(0, open_wav.len_samples(), "Wrong length when reading");
 
-
-        remove_file("test_data/write_sanity.wav")?;
-
         Ok(())
     }
 
-
     #[test]
     fn write_random() {
-        panic!("Incomplete");
+        // TODO: Encapsulate this in a callback
+        let result = write_random_test();
+
+        let _ignored = remove_file("test_data/write_random.wav");
+
+        result.unwrap();
+    }
+ 
+    fn write_random_test() -> Result<()> {
+        let header = WavHeader {
+            sample_format: SampleFormat::Float,
+            channels: 10,
+            sample_rate: 96000
+        };
+        let open_wav = write_wav_to_file_path("test_data/write_random.wav", header)?;
+
+        let mut writer = open_wav.get_random_access_float_writer()?;
+
+        for sample in 0..100 {
+            for channel in 0..writer.info().channels() {
+                writer.write_sample(sample, channel, (sample as f32 * 10f32) + channel as f32)?;
+            }
+        }
+
+        writer.flush()?;
+
+        let open_wav = read_wav_from_file_path("test_data/write_random.wav")?;
+        assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
+
+        let mut reader = open_wav.get_random_access_float_reader()?;
+
+        for sample in 0..100 {
+            for channel in 0..reader.info().channels() {
+                let value = reader.read_sample(sample, channel)?;
+                assert_eq!((sample as f32 * 10f32) + channel as f32, value, "Wrong sample read");
+            }
+        }
+
+        Ok(())
     }
 }
