@@ -52,7 +52,6 @@ pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::remove_file;
     use tempfile::tempdir;
 
     #[test]
