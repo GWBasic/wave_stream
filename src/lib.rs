@@ -255,4 +255,44 @@ mod tests {
             Ok(())
         });
     }
+
+    #[test]
+    fn write_all_float() {
+        test_with_file(|path| {
+            let source_wav = read_wav_from_file_path("test_data/short_float.wav")?;
+    
+            let header = WavHeader {
+                sample_format: source_wav.sample_format(),
+                channels: source_wav.channels(),
+                sample_rate: source_wav.sample_rate()
+            };
+            let open_wav = write_wav_to_file_path(path, header)?;
+
+            let read_samples_iter = source_wav.get_stream_float_reader()?.into_iter();
+            open_wav.write_all_f32(read_samples_iter)?;
+
+            let expected_wav = read_wav_from_file_path("test_data/short_float.wav")?;
+            let actual_wav = read_wav_from_file_path(path)?;
+
+            assert_eq!(expected_wav.channels(), actual_wav.channels());
+            assert_eq!(expected_wav.len_samples(), actual_wav.len_samples());
+
+            let len_samples = expected_wav.len_samples();
+            let channels = expected_wav.channels();
+
+            let mut expected_wav_reader = expected_wav.get_random_access_float_reader()?;
+            let mut actual_wav_reader = actual_wav.get_random_access_float_reader()?;
+
+            for sample_ctr in 0..len_samples {
+                for channel_ctr in 0..channels {
+                    assert_eq!(
+                        expected_wav_reader.read_sample(sample_ctr, channel_ctr)?,
+                        actual_wav_reader.read_sample(sample_ctr, channel_ctr)?,
+                        "Wrong value for sample");
+                }
+            }
+
+            Ok(())
+        });
+    }
 }

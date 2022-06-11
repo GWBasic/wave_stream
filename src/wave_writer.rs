@@ -45,15 +45,39 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         })
     }
 
-    /*
-    pub fn get_stream_float_reader(self) -> Result<StreamWavReaderFloat<TWriter>> {
+    pub fn write_all_f32<TIterator>(mut self, samples_itr: TIterator) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<f32>>>
+    {
         self.assert_float()?;
+        let channels = self.channels() as usize;
 
-        Ok(StreamWavReaderFloat {
-            open_wav: self
-        })
+        let position = self.data_start as u64;
+
+        self.writer.seek(SeekFrom::Start(position as u64))?;
+        
+        self.chunk_size_written = false;
+
+        for samples_result in samples_itr {
+            let samples = samples_result?;
+
+            if samples.len() != channels {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                     format!("Wrong number of channels in sample {}. Expected {}, got {}", self.samples_written, channels, samples.len())));
+            }
+
+            for value in samples {
+                self.writer.write_f32(value)?;
+            }
+
+
+            self.samples_written += 1;
+        }
+
+        self.flush()?;
+        Ok(())
     }
-*/
 
     pub fn sample_format(&self) -> SampleFormat {
         self.header.sample_format
