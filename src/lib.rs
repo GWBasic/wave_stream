@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Write, Seek };
-use std::str;
+use std::path::Path;
 
 pub mod reader;
 pub mod wave_header;
@@ -14,7 +14,7 @@ use wave_reader::*;
 use wave_writer::*;
 use writer::WriteEx;
 
-pub fn read_wav_from_file_path(file_path: &str) -> Result<OpenWavReader<BufReader<File>>> {
+pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
@@ -32,7 +32,7 @@ pub fn read_wav<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWavRead
     OpenWavReader::new(reader, header)
 }
 
-pub fn write_wav_to_file_path(file_path: &str, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {
+pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {
     let file = File::create(file_path)?;
     let writer = BufWriter::new(file);
 
@@ -56,21 +56,21 @@ mod tests {
 
     #[test]
     fn open_sanity() {
-        let open_wav = read_wav_from_file_path("test_data/short_float.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         assert_eq!(SampleFormat::Float, open_wav.sample_format());
         assert_eq!(1, open_wav.channels());
         assert_eq!(32, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
-        let open_wav = read_wav_from_file_path("test_data/short_24.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
         assert_eq!(SampleFormat::Int24, open_wav.sample_format());
         assert_eq!(1, open_wav.channels());
         assert_eq!(24, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
-        let open_wav = read_wav_from_file_path("test_data/short_16.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         assert_eq!(SampleFormat::Int16, open_wav.sample_format());
         assert_eq!(1, open_wav.channels());
         assert_eq!(16, open_wav.bits_per_sample());
@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn read_float_sanity() {
-        let open_wav = read_wav_from_file_path("test_data/short_float.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         let wave_reader_float = open_wav.get_random_access_float_reader().unwrap();
         assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
         assert_eq!(1, wave_reader_float.info().channels());
@@ -88,14 +88,14 @@ mod tests {
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
 
-        let open_wav = read_wav_from_file_path("test_data/short_24.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
         let read_float_result = open_wav.get_random_access_float_reader();
         match read_float_result {
             Result::Err(_) => {},
             _ => panic!("Should not be able to read file")
         }
 
-        let open_wav = read_wav_from_file_path("test_data/short_16.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         let read_float_result = open_wav.get_random_access_float_reader();
         match read_float_result {
             Result::Err(_) => {},
@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn read_float() {
-        let open_wav = read_wav_from_file_path("test_data/short_float.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         let mut wave_reader_float = open_wav.get_random_access_float_reader().unwrap();
 
         let expected_sample = f32::from_le_bytes([0x6D, 0xB4, 0xA7, 0xBC]);
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn stream_float_sanity() {
-        let open_wav = read_wav_from_file_path("test_data/short_float.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         let wave_reader_float = open_wav.get_stream_float_reader().unwrap();
         assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
         assert_eq!(1, wave_reader_float.info().channels());
@@ -131,14 +131,14 @@ mod tests {
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
 
-        let open_wav = read_wav_from_file_path("test_data/short_24.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
         let stream_float_result = open_wav.get_stream_float_reader();
         match stream_float_result {
             Result::Err(_) => {},
             _ => panic!("Should not be able to read file")
         }
 
-        let open_wav = read_wav_from_file_path("test_data/short_16.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         let stream_float_result = open_wav.get_stream_float_reader();
         match stream_float_result {
             Result::Err(_) => {},
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn stream_float() {
         let mut current_sample: usize = 0;
-        let open_wav = read_wav_from_file_path("test_data/short_float.wav").unwrap();
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         for samples_result in open_wav.get_stream_float_reader().unwrap().into_iter() {
             let samples = samples_result.unwrap();
 
@@ -173,19 +173,14 @@ mod tests {
         assert_eq!(1267, current_sample, "Wrong number of samples read");
     }
 
-    type FileTestCallback = fn(path: &str) -> Result<()>;
+    type FileTestCallback = fn(path: &Path) -> Result<()>;
 
     fn test_with_file(file_test_callback: FileTestCallback) {
         let temp_dir = tempdir().unwrap();
         
         {
             let path = temp_dir.path().join("tempwav.wav");
-
-            // TODO: Use the Path struct
-            // https://github.com/GWBasic/wave_stream/issues/4
-            let path_str = path.to_str().unwrap();
-
-            file_test_callback(path_str).unwrap();
+            file_test_callback(&path).unwrap();
         }
     }
 
@@ -259,7 +254,7 @@ mod tests {
     #[test]
     fn write_all_float() {
         test_with_file(|path| {
-            let source_wav = read_wav_from_file_path("test_data/short_float.wav")?;
+            let source_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav"))?;
     
             let header = WavHeader {
                 sample_format: source_wav.sample_format(),
@@ -271,7 +266,7 @@ mod tests {
             let read_samples_iter = source_wav.get_stream_float_reader()?.into_iter();
             open_wav.write_all_f32(read_samples_iter)?;
 
-            let expected_wav = read_wav_from_file_path("test_data/short_float.wav")?;
+            let expected_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav"))?;
             let actual_wav = read_wav_from_file_path(path)?;
 
             assert_eq!(expected_wav.channels(), actual_wav.channels());
