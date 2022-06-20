@@ -61,12 +61,7 @@ impl WavHeader {
 
         // Skip additional ignored headers
         // (By now we're read 16 bytes)
-        if subchunk_size > 16 {
-            let mut buf = [0u8];
-            for _ in 16..subchunk_size {
-                reader.read_exact(&mut buf[..])?;
-            }
-        }
+        reader.skip((subchunk_size - 16) as usize)?;
 
         Ok(WavHeader {
             sample_format,
