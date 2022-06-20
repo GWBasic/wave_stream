@@ -1,6 +1,6 @@
 // Influenced by https://github.com/kujirahand/wav_io/blob/main/src/header.rs
 
-use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom, Write };
+use std::io::{ Error, ErrorKind, Read, Result, Write };
 
 use crate::{ ReadEx, WriteEx };
 
@@ -24,7 +24,7 @@ pub struct WavHeader {
 }
 
 impl WavHeader {
-    pub fn from_reader(reader: &mut (impl Read + Seek)) -> Result<WavHeader> {
+    pub fn from_reader(reader: &mut impl Read) -> Result<WavHeader> {
         reader.assert_str("fmt ", ErrorKind::Unsupported, "Not a WAVE file")?;
 
         let subchunk_size = reader.read_u32()?;
@@ -62,7 +62,10 @@ impl WavHeader {
         // Skip additional ignored headers
         // (By now we're read 16 bytes)
         if subchunk_size > 16 {
-            reader.seek(SeekFrom::Current(subchunk_size as i64 - 16))?;
+            let mut buf = [0u8];
+            for _ in 16..subchunk_size {
+                reader.read_exact(&mut buf[..])?;
+            }
         }
 
         Ok(WavHeader {
