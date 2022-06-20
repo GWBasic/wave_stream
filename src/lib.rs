@@ -121,6 +121,24 @@ mod tests {
     }
 
     #[test]
+    fn read_int_8() {
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_8.wav")).unwrap();
+        let mut wave_reader_int_8 = open_wav.get_random_access_int_8_reader().unwrap();
+
+        let expected_sample = i8::from_le_bytes([0x7D]);
+        let actual_sample = wave_reader_int_8.read_sample(0, 0).unwrap();
+        assert_eq!(expected_sample, actual_sample, "Wrong sample read at sample 0, channel 0");
+
+        let expected_sample = i8::from_le_bytes([0x7F]);
+        let actual_sample = wave_reader_int_8.read_sample(1, 0).unwrap();
+        assert_eq!(expected_sample, actual_sample, "Wrong sample read at sample 1, channel 0");
+
+        let expected_sample = i8::from_le_bytes([0x7A]);
+        let actual_sample = wave_reader_int_8.read_sample(wave_reader_int_8.info().len_samples() - 1, 0).unwrap();
+        assert_eq!(expected_sample, actual_sample, "Wrong sample read at sample 1266, channel 0");
+    }
+
+    #[test]
     fn stream_float_sanity() {
 
         let file = File::open(Path::new("test_data/short_float.wav")).unwrap();
@@ -148,6 +166,46 @@ mod tests {
             Result::Err(_) => {},
             _ => panic!("Should not be able to read file")
         }
+
+        let open_wav = read_wav_from_file_path(Path::new("test_data/short_8.wav")).unwrap();
+        let stream_float_result = open_wav.get_stream_float_reader();
+        match stream_float_result {
+            Result::Err(_) => {},
+            _ => panic!("Should not be able to read file")
+        }
+    }
+
+    #[test]
+    fn stream_int_8() {
+        let mut current_sample: usize = 0;
+
+        let file = File::open(Path::new("test_data/short_8.wav")).unwrap();
+        let reader = BufReader::new(file)
+            .take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
+    
+        let open_wav = read_wav(reader).unwrap();
+
+        for samples_result in open_wav.get_stream_int_8_reader().unwrap().into_iter() {
+            let samples = samples_result.unwrap();
+
+            assert_eq!(1, samples.len(), "Wrong number of samples");
+
+            if current_sample == 0 {
+                let expected_sample = i8::from_le_bytes([0x7D]);
+                assert_eq!(expected_sample, samples[0], "Wrong sample read at sample 0, channel 0");
+        
+            } else if current_sample == 1 {
+                let expected_sample = i8::from_le_bytes([0x7F]);
+                assert_eq!(expected_sample, samples[0], "Wrong sample read at sample 1, channel 0");
+            } else if current_sample == 1266 {
+                let expected_sample = i8::from_le_bytes([0x7A]);
+                assert_eq!(expected_sample, samples[0], "Wrong sample read at sample 1266, channel 0");
+            }
+
+            current_sample += 1;
+        }
+
+        assert_eq!(1267, current_sample, "Wrong number of samples read");
     }
 
     #[test]
@@ -224,9 +282,45 @@ mod tests {
             Ok(())
         });
     }
-
+/*
     #[test]
-    fn write_random() {
+    fn write_random_int_8() {
+        test_with_file(|path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Int8,
+                channels: 10,
+                sample_rate: 96000
+            };
+            let open_wav = write_wav_to_file_path(path, header)?;
+
+            let mut writer = open_wav.get_random_access_int_8_writer()?;
+
+            for sample in 0..100 {
+                for channel in 0..writer.info().channels() {
+                    writer.write_sample(sample, channel, (sample as f32 * 10f32) + channel as f32)?;
+                }
+            }
+
+            writer.flush()?;
+
+            let open_wav = read_wav_from_file_path(path)?;
+            assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
+
+            let mut reader = open_wav.get_random_access_float_reader()?;
+
+            for sample in 0..100 {
+                for channel in 0..reader.info().channels() {
+                    let value = reader.read_sample(sample, channel)?;
+                    assert_eq!((sample as f32 * 10f32) + channel as f32, value, "Wrong sample read");
+                }
+            }
+
+            Ok(())
+        });
+    }
+*/
+    #[test]
+    fn write_random_float() {
         test_with_file(|path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Float,
@@ -262,7 +356,7 @@ mod tests {
     }
 
     #[test]
-    fn write_all_float() {
+    fn write_stream_float() {
         test_with_file(|path| {
             let source_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav"))?;
     

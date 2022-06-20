@@ -9,6 +9,7 @@ pub trait ReadEx : Read {
     fn read_u32(&mut self) -> Result<u32>;
     fn read_u16(&mut self) -> Result<u16>;
     fn read_f32(&mut self) -> Result<f32>;
+    fn read_i8(&mut self) -> Result<i8>;
 }
 
 impl<T> ReadEx for T where T: Read {
@@ -72,5 +73,12 @@ impl<T> ReadEx for T where T: Read {
         self.read_fixed_size(&mut buf[..])?;
 
         Ok(f32::from_le_bytes(buf))
+    }
+
+    fn read_i8(&mut self) -> Result<i8> {
+        let mut buf = [0u8; 1];
+        self.read_fixed_size(&mut buf[..])?;
+
+        Ok(i8::from_le_bytes(buf))
     }
 }
