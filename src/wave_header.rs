@@ -14,11 +14,12 @@ pub enum SampleFormat {
 }
 
 /// Wav file header
-//#[derive(Debug,Copy,Clone,PartialEq)]
 pub struct WavHeader {
     pub sample_format: SampleFormat,
     pub channels: u16,
     pub sample_rate: u32,
+    // Note: This may be needed to signal that a wav is an oddball bits per second: 12, 20, ect
+    // (Samples are always aligned on the byte, IE, that's why 8-bit, 16-bit, and 24-bit int, and 32-bit float are supported)
     //pub bits_per_sample: u16
 }
 
