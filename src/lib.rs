@@ -21,7 +21,7 @@ pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufRead
     read_wav(reader)
 }
 
-pub fn read_wav<TReader: Read + Seek>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
+pub fn read_wav<TReader: Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str("RIFF", ErrorKind::InvalidInput, "Not a WAVE file (Missing RIFF Header)")?;
     let _file_length = reader.read_u32()?;
@@ -40,7 +40,6 @@ pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<Ope
 }
 
 pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
-
     // Write RIFF header and format
     writer.write(b"RIFF    WAVE")?;
 
@@ -123,7 +122,12 @@ mod tests {
 
     #[test]
     fn stream_float_sanity() {
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
+
+        let file = File::open(Path::new("test_data/short_float.wav")).unwrap();
+        let reader = BufReader::new(file)
+            .take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
+    
+        let open_wav = read_wav(reader).unwrap();
         let wave_reader_float = open_wav.get_stream_float_reader().unwrap();
         assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
         assert_eq!(1, wave_reader_float.info().channels());
@@ -149,7 +153,13 @@ mod tests {
     #[test]
     fn stream_float() {
         let mut current_sample: usize = 0;
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
+
+        let file = File::open(Path::new("test_data/short_float.wav")).unwrap();
+        let reader = BufReader::new(file)
+            .take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
+    
+        let open_wav = read_wav(reader).unwrap();
+
         for samples_result in open_wav.get_stream_float_reader().unwrap().into_iter() {
             let samples = samples_result.unwrap();
 

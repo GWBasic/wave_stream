@@ -129,17 +129,17 @@ pub struct StreamWavReaderFloat<TReader: Read> {
     open_wav: OpenWavReader<TReader>,
 }
 
-pub trait StreamWavReader<T, TReader: Read + Seek> {
+pub trait StreamWavReader<T, TReader: Read> {
     fn info(&self) -> &OpenWavReader<TReader>;
 }
 
-impl<TReader: Read + Seek> StreamWavReader<f32, TReader> for StreamWavReaderFloat<TReader> {
+impl<TReader: Read> StreamWavReader<f32, TReader> for StreamWavReaderFloat<TReader> {
     fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 }
  
-impl<TReader: Read + Seek> IntoIterator for StreamWavReaderFloat<TReader> {
+impl<TReader: Read> IntoIterator for StreamWavReaderFloat<TReader> {
     type Item = Result<Vec<f32>>;
     type IntoIter = StreamWavReaderFloatIterator<TReader>;
 
@@ -151,12 +151,12 @@ impl<TReader: Read + Seek> IntoIterator for StreamWavReaderFloat<TReader> {
     }
 }
 
-pub struct StreamWavReaderFloatIterator<TReader: Read + Seek> {
+pub struct StreamWavReaderFloatIterator<TReader: Read> {
     open_wav: OpenWavReader<TReader>,
     current_sample: u32,
 }
 
-impl<TReader: Read + Seek> Iterator for StreamWavReaderFloatIterator<TReader> {
+impl<TReader: Read> Iterator for StreamWavReaderFloatIterator<TReader> {
     type Item = Result<Vec<f32>>;
 
     fn next(&mut self) -> Option<Self::Item> {
