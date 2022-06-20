@@ -1,5 +1,4 @@
 use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
-//use std::iter::IntoIterator;
 
 use crate::WriteEx;
 use crate::SampleFormat;
