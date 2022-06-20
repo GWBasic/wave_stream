@@ -2,6 +2,7 @@ use std::io::{ Error, ErrorKind, Read, Result };
 use std::str;
 
 pub trait ReadEx : Read {
+    fn skip(&mut self, length: usize) -> Result<()>;
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()>;
     fn read_str(&mut self, len: usize) -> Result<String>;
     fn assert_str(&mut self, expected: &str, error_kind: ErrorKind, message: &str) -> Result<()>;
@@ -11,6 +12,17 @@ pub trait ReadEx : Read {
 }
 
 impl<T> ReadEx for T where T: Read {
+    fn skip(&mut self, length: usize) -> Result<()> {
+        if length > 0 {
+            let mut buf = [0u8];
+            for _ in 0..length {
+                self.read_exact(&mut buf[..])?;
+            }
+        }
+
+        Ok(())
+    }
+
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()> {
         let bytes_read = self.read(buf)?;
     
