@@ -121,6 +121,26 @@ mod tests {
     }
 
     #[test]
+    fn read_int_16() {
+        read(
+            Path::new("test_data/short_16.wav"),
+            |open_wav| open_wav.get_random_access_int_16_reader(),
+            i16::from_le_bytes([0x61, 0xFD]),
+            i16::from_le_bytes([0xF9, 0xFD]),
+            i16::from_le_bytes([0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
+    fn read_int_24() {
+        read(
+            Path::new("test_data/short_24.wav"),
+            |open_wav| open_wav.get_random_access_int_24_reader(),
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]),
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]),
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
     fn read_float() {
         read(
             Path::new("test_data/short_float.wav"),

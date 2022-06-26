@@ -110,6 +110,30 @@ impl<TReader: Read + Seek> OpenWavReader<TReader> {
         })
     }
 
+    pub fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReaderImpl<i16, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavReaderImpl {
+                    open_wav : self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i16())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
+        }
+    }
+
+    pub fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReaderImpl<i32, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavReaderImpl {
+                    open_wav : self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i24())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
+    }
+
     pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReaderImpl<f32, TReader>> {
         self.assert_float()?;
 
