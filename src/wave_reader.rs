@@ -101,19 +101,19 @@ impl<TReader: Read> OpenWavReader<TReader> {
 }
 
 impl<TReader: Read + Seek> OpenWavReader<TReader> {
-    pub fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReaderImpl<i8, TReader>> {
+    pub fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8, TReader>> {
         self.assert_int_8()?;
 
-        Ok(RandomAccessWavReaderImpl {
+        Ok(RandomAccessWavReader {
             open_wav : self,
             read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i8())
         })
     }
 
-    pub fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReaderImpl<i16, TReader>> {
+    pub fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16, TReader>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
-                Ok(RandomAccessWavReaderImpl {
+                Ok(RandomAccessWavReader {
                     open_wav : self,
                     read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i16())
                 })
@@ -122,10 +122,10 @@ impl<TReader: Read + Seek> OpenWavReader<TReader> {
         }
     }
 
-    pub fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReaderImpl<i32, TReader>> {
+    pub fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32, TReader>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
-                Ok(RandomAccessWavReaderImpl {
+                Ok(RandomAccessWavReader {
                     open_wav : self,
                     read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i24())
                 })
@@ -134,32 +134,27 @@ impl<TReader: Read + Seek> OpenWavReader<TReader> {
         }
     }
 
-    pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReaderImpl<f32, TReader>> {
+    pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32, TReader>> {
         self.assert_float()?;
 
-        Ok(RandomAccessWavReaderImpl {
+        Ok(RandomAccessWavReader {
             open_wav : self,
             read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_f32())
         })
     }
 }
 
-pub trait RandomAccessWavReader<T, TReader: Read + Seek> {
-    fn info(&self) -> &OpenWavReader<TReader>;
-    fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T>;
-}
-
-pub struct RandomAccessWavReaderImpl<T, TReader: Read + Seek> {
+pub struct RandomAccessWavReader<T, TReader: Read + Seek> {
     open_wav: OpenWavReader<TReader>,
     read_sample_from_stream: Box<dyn Fn(&mut TReader) -> Result<T>>
 }
 
-impl<T, TReader: Read + Seek> RandomAccessWavReader<T, TReader> for RandomAccessWavReaderImpl<T, TReader> {
-    fn info(&self) -> &OpenWavReader<TReader> {
+impl<T, TReader: Read + Seek> RandomAccessWavReader<T, TReader> {
+    pub fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 
-    fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T> {
+    pub fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T> {
         if sample >= self.open_wav.len_samples() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
         }

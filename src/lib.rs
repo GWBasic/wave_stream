@@ -150,7 +150,7 @@ mod tests {
             f32::from_le_bytes([0xA0, 0xB5, 0x31, 0xBC])).unwrap();
     }
 
-    fn read<T: Debug + PartialEq, TRandomAccessWavReader: RandomAccessWavReader<T, BufReader<File>>, TGetRandomAccessReader: FnOnce(OpenWavReader<BufReader<File>>) -> Result<TRandomAccessWavReader>>(
+    fn read<T: Debug + PartialEq, TGetRandomAccessReader: FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>(
         path: &Path, get_random_access_reader: TGetRandomAccessReader, expected_sample_0: T, expected_sample_1: T, expected_sample_end: T)
         -> Result<()> {
 
