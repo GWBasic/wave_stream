@@ -9,18 +9,22 @@ pub struct OpenWavReader<TReader: Read> {
     reader: TReader,
     header: WavHeader,
     data_length: u32,
+    data_start: u32,
 }
 
 impl<TReader: Read> OpenWavReader<TReader> {
-    pub fn new(mut reader: TReader, header: WavHeader) -> Result<OpenWavReader<TReader>> {
+    pub fn new(mut reader: TReader, header: WavHeader, position: u32) -> Result<OpenWavReader<TReader>> {
+        let mut data_start = position;
         'find_data_chunk: loop {
             let chunk_name = reader.read_str(4)?;
+            data_start += 8;
             
             if chunk_name.eq("data") {
                 break 'find_data_chunk;
             }
 
             let chunk_size = reader.read_u32()?;
+            data_start += chunk_size;
             reader.skip(chunk_size as usize)?;
         }
 
@@ -29,7 +33,8 @@ impl<TReader: Read> OpenWavReader<TReader> {
         Ok(OpenWavReader {
             reader,
             header,
-            data_length
+            data_length,
+            data_start
         })
     }
 
@@ -96,25 +101,36 @@ impl<TReader: Read> OpenWavReader<TReader> {
 }
 
 impl<TReader: Read + Seek> OpenWavReader<TReader> {
-    pub fn get_random_access_int_8_reader(mut self) -> Result<RandomAccessWavReaderInt8<TReader>> {
+    fn seek_to(&mut self, sample: u32, channel: u16) -> Result<()> {
+        if sample >= self.len_samples() {
+            return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
+        }
+
+        if channel >= self.channels() {
+            return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
+        }
+
+        let sample_in_channels = (sample * self.channels() as u32) + channel as u32;
+        let sample_in_bytes = sample_in_channels * self.bytes_per_sample() as u32;
+        let position = self.data_start + sample_in_bytes;
+        self.reader.seek(SeekFrom::Start(position as u64))?;
+
+        Ok(())
+    }
+
+    pub fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReaderInt8<TReader>> {
         self.assert_int_8()?;
 
-        let data_start = self.reader.stream_position()? as u32;
-
         Ok(RandomAccessWavReaderInt8 {
-            open_wav : self,
-            data_start
+            open_wav : self
         })
     }
 
-    pub fn get_random_access_float_reader(mut self) -> Result<RandomAccessWavReaderFloat<TReader>> {
+    pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReaderFloat<TReader>> {
         self.assert_float()?;
 
-        let data_start = self.reader.stream_position()? as u32;
-
         Ok(RandomAccessWavReaderFloat {
-            open_wav : self,
-            data_start
+            open_wav : self
         })
     }
 }
@@ -125,13 +141,11 @@ pub trait RandomAccessWavReader<T, TReader: Read + Seek> {
 }
 
 pub struct RandomAccessWavReaderInt8<TReader: Read + Seek> {
-    open_wav: OpenWavReader<TReader>,
-    data_start: u32,
+    open_wav: OpenWavReader<TReader>
 }
 
 pub struct RandomAccessWavReaderFloat<TReader: Read + Seek> {
-    open_wav: OpenWavReader<TReader>,
-    data_start: u32,
+    open_wav: OpenWavReader<TReader>
 }
 
 impl<TReader: Read + Seek> RandomAccessWavReader<i8, TReader> for RandomAccessWavReaderInt8<TReader> {
@@ -140,19 +154,7 @@ impl<TReader: Read + Seek> RandomAccessWavReader<i8, TReader> for RandomAccessWa
     }
 
     fn read_sample(&mut self, sample: u32, channel: u16) -> Result<i8> {
-        if sample >= self.open_wav.len_samples() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
-        }
-
-        if channel >= self.open_wav.channels() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
-        }
-
-        let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
-        let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as u32;
-        let position = self.data_start + sample_in_bytes;
-        self.open_wav.reader.seek(SeekFrom::Start(position as u64))?;
-        
+        self.open_wav.seek_to(sample, channel)?;
         self.open_wav.reader.read_i8()
     }
 }
@@ -163,19 +165,7 @@ impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessW
     }
 
     fn read_sample(&mut self, sample: u32, channel: u16) -> Result<f32> {
-        if sample >= self.open_wav.len_samples() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
-        }
-
-        if channel >= self.open_wav.channels() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
-        }
-
-        let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
-        let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as u32;
-        let position = self.data_start + sample_in_bytes;
-        self.open_wav.reader.seek(SeekFrom::Start(position as u64))?;
-        
+        self.open_wav.seek_to(sample, channel)?;
         self.open_wav.reader.read_f32()
     }
 }

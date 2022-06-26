@@ -27,9 +27,14 @@ pub fn read_wav<TReader: Read>(mut reader: TReader) -> Result<OpenWavReader<TRea
     let _file_length = reader.read_u32()?;
     reader.assert_str("WAVE", ErrorKind::Unsupported, "Not a WAVE file (Missing WAVE header)")?;
 
-    let header = WavHeader::from_reader(&mut reader)?;
+    // file position is 12
 
-    OpenWavReader::new(reader, header)
+    let mut subchunk_size = 0u32;
+    let header = WavHeader::from_reader(&mut reader, &mut subchunk_size)?;
+
+    // subchunk size doesn't include 4-letter prefix and 4-byte length
+
+    OpenWavReader::new(reader, header, 20 + subchunk_size)
 }
 
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {

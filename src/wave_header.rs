@@ -24,11 +24,11 @@ pub struct WavHeader {
 }
 
 impl WavHeader {
-    pub fn from_reader(reader: &mut impl Read) -> Result<WavHeader> {
+    pub fn from_reader(reader: &mut impl Read, subchunk_size: &mut u32) -> Result<WavHeader> {
         reader.assert_str("fmt ", ErrorKind::Unsupported, "Not a WAVE file")?;
 
-        let subchunk_size = reader.read_u32()?;
-        if subchunk_size < 16 {
+        *subchunk_size = reader.read_u32()?;
+        if *subchunk_size < 16 {
             return Err(Error::new(ErrorKind::Unsupported, format!("Invalid header. fmt header must be size 16 or larger, actual value: {}", subchunk_size)));
         }
 
@@ -61,7 +61,7 @@ impl WavHeader {
 
         // Skip additional ignored headers
         // (By now we're read 16 bytes)
-        reader.skip((subchunk_size - 16) as usize)?;
+        reader.skip((*subchunk_size - 16) as usize)?;
 
         Ok(WavHeader {
             sample_format,
