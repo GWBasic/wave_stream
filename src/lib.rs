@@ -217,6 +217,26 @@ mod tests {
     }
 
     #[test]
+    fn stream_int_16() {
+        stream(
+            Path::new("test_data/short_16.wav"),
+            |open_wav| open_wav.get_stream_int_16_reader(),
+            i16::from_le_bytes([0x61, 0xFD]),
+            i16::from_le_bytes([0xF9, 0xFD]),
+            i16::from_le_bytes([0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
+    fn stream_int_24() {
+        stream(
+            Path::new("test_data/short_24.wav"),
+            |open_wav| open_wav.get_stream_int_24_reader(),
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]),
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]),
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
     fn stream_float() {
         stream(
             Path::new("test_data/short_float.wav"),
@@ -226,7 +246,7 @@ mod tests {
             f32::from_le_bytes([0xA0, 0xB5, 0x31, 0xBC])).unwrap();
     }
 
-    fn stream<T: Debug + PartialEq, TStreamWavReader: StreamWavReader<T, Take<BufReader<File>>> + IntoIterator<Item = Result<Vec<T>>>, TGetStreamWavReader: FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<TStreamWavReader>>(
+    fn stream<T: Debug + PartialEq + Default + Clone, TGetStreamWavReader: FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<StreamWavReader<T, Take<BufReader<File>>>>>(
         path: &Path, get_stream_reader: TGetStreamWavReader, expected_sample_0: T, expected_sample_1: T, expected_sample_end: T)
         -> Result<()> {
             let mut current_sample: usize = 0;
