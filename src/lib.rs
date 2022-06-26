@@ -135,9 +135,9 @@ mod tests {
         read_random(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_random_access_int_24_reader()),
-            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]),
-            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]),
-            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE])).unwrap();
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]),
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]),
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00])).unwrap();
     }
 
     #[test]
@@ -235,9 +235,9 @@ mod tests {
         read_stream(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_stream_int_24_reader()),
-            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]),
-            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]),
-            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE])).unwrap();
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]),
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]),
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00])).unwrap();
     }
 
     #[test]
@@ -328,16 +328,32 @@ mod tests {
         }));
     }
 
-    /*
     #[test]
-    fn write_random_i8() {
+    fn write_random_int_8() {
         write_random(
-            SampleFormat::Float,
+            SampleFormat::Int8,
             Box::new(|open_wav| open_wav.get_random_access_int_8_reader()),
             Box::new(|open_wav| open_wav.get_random_access_int_8_writer()),
             Box::new(|sample_value| sample_value as i8));
     }
-*/
+
+    #[test]
+    fn write_random_int_16() {
+        write_random(
+            SampleFormat::Int16,
+            Box::new(|open_wav| open_wav.get_random_access_int_16_reader()),
+            Box::new(|open_wav| open_wav.get_random_access_int_16_writer()),
+            Box::new(|sample_value| sample_value as i16));
+    }
+
+    #[test]
+    fn write_random_int_24() {
+        write_random(
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_random_access_int_24_reader()),
+            Box::new(|open_wav| open_wav.get_random_access_int_24_writer()),
+            Box::new(|sample_value| sample_value as i32));
+    }
 
     #[test]
     fn write_random_float() {
@@ -381,7 +397,7 @@ mod tests {
                     for channel in 0..reader.info().channels() {
                         let value = reader.read_sample(sample, channel)?;
                         let sample_value = (sample as i32) * 10 + (channel as i32);
-                        assert_eq!(convert_sample(sample_value), value, "Wrong sample read");
+                        assert_eq!(convert_sample(sample_value), value, "Wrong sample read at {sample}, channel {channel}");
                     }
                 }
     

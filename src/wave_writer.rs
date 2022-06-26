@@ -36,6 +36,48 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
+    pub fn get_random_access_int_8_writer(self) -> Result<RandomAccessWavWriter<i8, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i8| writer.write_i8(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn get_random_access_int_16_writer(self) -> Result<RandomAccessWavWriter<i16, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i16| writer.write_i16(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn get_random_access_int_24_writer(self) -> Result<RandomAccessWavWriter<i32, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i32| writer.write_i24(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
+            }
+        }
+    }
+
     pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32, TWriter>> {
         self.assert_float()?;
 
