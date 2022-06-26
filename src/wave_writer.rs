@@ -87,9 +87,23 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         })
     }
 
-    pub fn write_all_f32<TIterator>(mut self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_f32<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<f32>>>
+    {
+        self.assert_float()?;
+
+        self.write_all(
+            samples_itr,
+            Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value)))
+    }
+
+    pub fn write_all<T, TIterator>(
+        mut self,
+        samples_itr: TIterator,
+        write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<T>>>
     {
         self.assert_float()?;
         let channels = self.channels() as usize;
@@ -110,7 +124,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             }
 
             for value in samples {
-                self.writer.write_f32(value)?;
+                write_sample_to_stream(&mut self.writer, value)?;
             }
 
 
@@ -140,7 +154,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     pub fn bytes_per_sample(&self) -> u16 {
         match self.header.sample_format {
             SampleFormat::Float => 4,
-            SampleFormat:: Int24 => 3,
+            SampleFormat::Int24 => 3,
             SampleFormat::Int16 => 2,
             SampleFormat::Int8 => 1
         }
