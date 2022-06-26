@@ -36,11 +36,12 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavReaderFloat<TWriter>> {
+    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32, TWriter>> {
         self.assert_float()?;
 
-        Ok(RandomAccessWavReaderFloat {
-            open_wav: self
+        Ok(RandomAccessWavWriter {
+            open_wav: self,
+            write_sample_to_stream: Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value))
         })
     }
 
@@ -129,23 +130,17 @@ impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
     }
 }
 
-
-pub trait RandomAccessWavWriter<T, TWriter: Write + Seek> {
-    fn info(&self) -> &OpenWavWriter<TWriter>;
-    fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()>;
-    fn flush(&mut self) -> Result<()>;
+pub struct RandomAccessWavWriter<T, TWriter: Write + Seek> {
+    open_wav: OpenWavWriter<TWriter>,
+    write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>
 }
 
-pub struct RandomAccessWavReaderFloat<TWriter: Write + Seek> {
-    open_wav: OpenWavWriter<TWriter>
-}
-
-impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccessWavReaderFloat<TWriter> {
-    fn info(&self) -> &OpenWavWriter<TWriter> {
+impl<T, TWriter: Write + Seek> RandomAccessWavWriter<T, TWriter> {
+    pub fn info(&self) -> &OpenWavWriter<TWriter> {
         &(self.open_wav)
     }
 
-    fn write_sample(&mut self, sample: u32, channel: u16, value: f32) -> Result<()> {
+    pub fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()> {
         if channel >= self.open_wav.channels() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
@@ -155,8 +150,10 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
             self.open_wav.writer.seek(SeekFrom::End(0))?;
 
             let padding_size = (self.open_wav.samples_written - sample + 1) * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
-            let padding = vec![0u8; padding_size as usize];
-            self.open_wav.writer.write(&padding)?;
+            let padding = vec![0u8; 1];
+            for _ in 0..padding_size {
+                self.open_wav.writer.write(&padding)?;
+            }
             self.open_wav.samples_written = sample + 1;
         }
 
@@ -167,10 +164,10 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
         self.open_wav.writer.seek(SeekFrom::Start(position as u64))?;
         
         self.open_wav.chunk_size_written = false;
-        self.open_wav.writer.write_f32(value)
+        (*self.write_sample_to_stream)(&mut self.open_wav.writer, value)
     }
 
-    fn flush(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> Result<()> {
         self.open_wav.flush()
     }
 }
