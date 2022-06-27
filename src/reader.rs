@@ -7,8 +7,11 @@ pub trait ReadEx : Read {
     fn read_str(&mut self, len: usize) -> Result<String>;
     fn assert_str(&mut self, expected: &str, error_kind: ErrorKind, message: &str) -> Result<()>;
     fn read_u32(&mut self) -> Result<u32>;
+    fn read_i16(&mut self) -> Result<i16>;
     fn read_u16(&mut self) -> Result<u16>;
     fn read_f32(&mut self) -> Result<f32>;
+    fn read_i8(&mut self) -> Result<i8>;
+    fn read_i24(&mut self) -> Result<i32>;
 }
 
 impl<T> ReadEx for T where T: Read {
@@ -60,6 +63,13 @@ impl<T> ReadEx for T where T: Read {
         Ok(u32::from_le_bytes(buf))
     }
 
+    fn read_i16(&mut self) -> Result<i16> {
+        let mut buf = [0u8; 2];
+        self.read_fixed_size(&mut buf[..])?;
+
+        Ok(i16::from_le_bytes(buf))
+    }
+
     fn read_u16(&mut self) -> Result<u16> {
         let mut buf = [0u8; 2];
         self.read_fixed_size(&mut buf[..])?;
@@ -72,5 +82,20 @@ impl<T> ReadEx for T where T: Read {
         self.read_fixed_size(&mut buf[..])?;
 
         Ok(f32::from_le_bytes(buf))
+    }
+
+    fn read_i8(&mut self) -> Result<i8> {
+        let mut buf = [0u8; 1];
+        self.read_fixed_size(&mut buf[..])?;
+
+        Ok(i8::from_le_bytes(buf))
+    }
+
+    fn read_i24(&mut self) -> Result<i32> {
+        let mut buf = [0u8; 3];
+        self.read_fixed_size(&mut buf[..])?;
+
+        let buf = [buf[0], buf[1], buf[2], 0];
+        Ok(i32::from_le_bytes(buf) >> 8)
     }
 }

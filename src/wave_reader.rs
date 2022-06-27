@@ -9,18 +9,22 @@ pub struct OpenWavReader<TReader: Read> {
     reader: TReader,
     header: WavHeader,
     data_length: u32,
+    data_start: u32,
 }
 
 impl<TReader: Read> OpenWavReader<TReader> {
-    pub fn new(mut reader: TReader, header: WavHeader) -> Result<OpenWavReader<TReader>> {
+    pub fn new(mut reader: TReader, header: WavHeader, position: u32) -> Result<OpenWavReader<TReader>> {
+        let mut data_start = position;
         'find_data_chunk: loop {
             let chunk_name = reader.read_str(4)?;
+            data_start += 8;
             
             if chunk_name.eq("data") {
                 break 'find_data_chunk;
             }
 
             let chunk_size = reader.read_u32()?;
+            data_start += chunk_size;
             reader.skip(chunk_size as usize)?;
         }
 
@@ -29,8 +33,17 @@ impl<TReader: Read> OpenWavReader<TReader> {
         Ok(OpenWavReader {
             reader,
             header,
-            data_length
+            data_length,
+            data_start
         })
+    }
+
+    fn assert_int_8(&self) -> Result<()> {
+        if self.header.sample_format == SampleFormat::Int8 {
+            Ok(())
+        } else {
+            Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
+        }
     }
 
     fn assert_float(&self) -> Result<()> {
@@ -41,11 +54,45 @@ impl<TReader: Read> OpenWavReader<TReader> {
         }
     }
 
-    pub fn get_stream_float_reader(self) -> Result<StreamWavReaderFloat<TReader>> {
+    pub fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8, TReader>> {
+        self.assert_int_8()?;
+
+        Ok(StreamWavReader {
+            open_wav: self,
+            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i8())
+        })
+    }
+
+    pub fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(StreamWavReader {
+                    open_wav: self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i16())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
+        }
+    }
+
+    pub fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(StreamWavReader {
+                    open_wav: self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i24())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
+    }
+
+    pub fn get_stream_float_reader(self) -> Result<StreamWavReader<f32, TReader>> {
         self.assert_float()?;
 
-        Ok(StreamWavReaderFloat {
-            open_wav: self
+        Ok(StreamWavReader {
+            open_wav: self,
+            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_f32())
         })
     }
 
@@ -80,34 +127,60 @@ impl<TReader: Read> OpenWavReader<TReader> {
 }
 
 impl<TReader: Read + Seek> OpenWavReader<TReader> {
-    pub fn get_random_access_float_reader(mut self) -> Result<RandomAccessWavReaderFloat<TReader>> {
+    pub fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8, TReader>> {
+        self.assert_int_8()?;
+
+        Ok(RandomAccessWavReader {
+            open_wav: self,
+            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i8())
+        })
+    }
+
+    pub fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i16())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
+        }
+    }
+
+    pub fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32, TReader>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: self,
+                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i24())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
+    }
+
+    pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32, TReader>> {
         self.assert_float()?;
 
-        let data_start = self.reader.stream_position()? as u32;
-
-        Ok(RandomAccessWavReaderFloat {
-            open_wav : self,
-            data_start
+        Ok(RandomAccessWavReader {
+            open_wav: self,
+            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_f32())
         })
     }
 }
 
-pub trait RandomAccessWavReader<T, TReader: Read + Seek> {
-    fn info(&self) -> &OpenWavReader<TReader>;
-    fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T>;
-}
-
-pub struct RandomAccessWavReaderFloat<TReader: Read + Seek> {
+pub struct RandomAccessWavReader<T, TReader: Read + Seek> {
     open_wav: OpenWavReader<TReader>,
-    data_start: u32,
+    read_sample_from_stream: Box<dyn Fn(&mut TReader) -> Result<T>>
 }
 
-impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessWavReaderFloat<TReader> {
-    fn info(&self) -> &OpenWavReader<TReader> {
+impl<T, TReader: Read + Seek> RandomAccessWavReader<T, TReader> {
+    pub fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 
-    fn read_sample(&mut self, sample: u32, channel: u16) -> Result<f32> {
+    pub fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T> {
         if sample >= self.open_wav.len_samples() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
         }
@@ -118,56 +191,56 @@ impl<TReader: Read + Seek> RandomAccessWavReader<f32, TReader> for RandomAccessW
 
         let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
         let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as u32;
-        let position = self.data_start + sample_in_bytes;
+        let position = self.open_wav.data_start + sample_in_bytes;
         self.open_wav.reader.seek(SeekFrom::Start(position as u64))?;
-        
-        self.open_wav.reader.read_f32()
+
+        (*self.read_sample_from_stream)(&mut self.open_wav.reader)
     }
 }
 
-pub struct StreamWavReaderFloat<TReader: Read> {
+pub struct StreamWavReader<T: Default + Clone, TReader: Read> {
     open_wav: OpenWavReader<TReader>,
+    read_sample_from_stream: Box<dyn Fn(&mut TReader) -> Result<T>>
 }
 
-pub trait StreamWavReader<T, TReader: Read> {
-    fn info(&self) -> &OpenWavReader<TReader>;
-}
-
-impl<TReader: Read> StreamWavReader<f32, TReader> for StreamWavReaderFloat<TReader> {
-    fn info(&self) -> &OpenWavReader<TReader> {
+impl<T: Default + Clone, TReader: Read> StreamWavReader<T, TReader> {
+    pub fn info(&self) -> &OpenWavReader<TReader> {
         &(self.open_wav)
     }
 }
- 
-impl<TReader: Read> IntoIterator for StreamWavReaderFloat<TReader> {
-    type Item = Result<Vec<f32>>;
-    type IntoIter = StreamWavReaderFloatIterator<TReader>;
+
+impl<T: Default + Clone, TReader: Read> IntoIterator for StreamWavReader<T, TReader> {
+    type Item = Result<Vec<T>>;
+    type IntoIter = StreamWavReaderIterator<T, TReader>;
 
     fn into_iter(self) -> Self::IntoIter {
-        StreamWavReaderFloatIterator {
+        StreamWavReaderIterator {
             open_wav: self.open_wav,
+            read_sample_from_stream: self.read_sample_from_stream,
             current_sample: 0
         }
     }
 }
 
-pub struct StreamWavReaderFloatIterator<TReader: Read> {
+pub struct StreamWavReaderIterator<T: Default + Clone, TReader: Read> {
     open_wav: OpenWavReader<TReader>,
-    current_sample: u32,
+    read_sample_from_stream: Box<dyn Fn(&mut TReader) -> Result<T>>,
+    current_sample: u32
 }
 
-impl<TReader: Read> Iterator for StreamWavReaderFloatIterator<TReader> {
-    type Item = Result<Vec<f32>>;
+impl<T: Default + Clone, TReader: Read> Iterator for StreamWavReaderIterator<T, TReader> {
+    type Item = Result<Vec<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_sample >= self.open_wav.len_samples() {
             None
         } else {
             let num_channels: usize = self.open_wav.channels().into();
-            let mut samples = vec![0f32; num_channels];
+            let mut samples = vec![Default::default(); num_channels];
 
             for channel in 0..num_channels {
-                samples[channel] = match self.open_wav.reader.read_f32() {
+                let read_result = (*self.read_sample_from_stream)(&mut self.open_wav.reader);
+                samples[channel] = match read_result {
                     Ok(sample) => sample,
                     Err(err) => {
                         self.current_sample = u32::MAX;

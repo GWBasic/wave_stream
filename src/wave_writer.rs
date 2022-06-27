@@ -36,19 +36,128 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavReaderFloat<TWriter>> {
+    pub fn get_random_access_int_8_writer(self) -> Result<RandomAccessWavWriter<i8, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i8| writer.write_i8(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn get_random_access_int_16_writer(self) -> Result<RandomAccessWavWriter<i16, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i16| writer.write_i16(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn get_random_access_int_24_writer(self) -> Result<RandomAccessWavWriter<i32, TWriter>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i32| writer.write_i24(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32, TWriter>> {
         self.assert_float()?;
 
-        Ok(RandomAccessWavReaderFloat {
-            open_wav: self
+        Ok(RandomAccessWavWriter {
+            open_wav: self,
+            write_sample_to_stream: Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value))
         })
     }
 
-    pub fn write_all_f32<TIterator>(mut self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_int_8<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<i8>>>
+    {
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|writer: &mut TWriter, value: i8| writer.write_i8(value)))
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn write_all_int_16<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<i16>>>
+    {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|writer: &mut TWriter, value: i16| writer.write_i16(value)))
+                    },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn write_all_int_24<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<i32>>>
+    {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|writer: &mut TWriter, value: i32| writer.write_i24(value)))
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
+            }
+        }
+    }
+
+    pub fn write_all_float<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<f32>>>
     {
-        self.assert_float()?;
+        match self.header.sample_format {
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value)))
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to float int unsupported"))
+            }
+        }
+    }
+
+    pub fn write_all<T, TIterator>(
+        mut self,
+        samples_itr: TIterator,
+        write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>) -> Result<()>
+    where
+        TIterator: Iterator<Item = Result<Vec<T>>>
+    {
         let channels = self.channels() as usize;
 
         let position = self.data_start as u64;
@@ -67,7 +176,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             }
 
             for value in samples {
-                self.writer.write_f32(value)?;
+                write_sample_to_stream(&mut self.writer, value)?;
             }
 
 
@@ -97,7 +206,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     pub fn bytes_per_sample(&self) -> u16 {
         match self.header.sample_format {
             SampleFormat::Float => 4,
-            SampleFormat:: Int24 => 3,
+            SampleFormat::Int24 => 3,
             SampleFormat::Int16 => 2,
             SampleFormat::Int8 => 1
         }
@@ -129,23 +238,17 @@ impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
     }
 }
 
-
-pub trait RandomAccessWavWriter<T, TWriter: Write + Seek> {
-    fn info(&self) -> &OpenWavWriter<TWriter>;
-    fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()>;
-    fn flush(&mut self) -> Result<()>;
+pub struct RandomAccessWavWriter<T, TWriter: Write + Seek> {
+    open_wav: OpenWavWriter<TWriter>,
+    write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>
 }
 
-pub struct RandomAccessWavReaderFloat<TWriter: Write + Seek> {
-    open_wav: OpenWavWriter<TWriter>
-}
-
-impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccessWavReaderFloat<TWriter> {
-    fn info(&self) -> &OpenWavWriter<TWriter> {
+impl<T, TWriter: Write + Seek> RandomAccessWavWriter<T, TWriter> {
+    pub fn info(&self) -> &OpenWavWriter<TWriter> {
         &(self.open_wav)
     }
 
-    fn write_sample(&mut self, sample: u32, channel: u16, value: f32) -> Result<()> {
+    pub fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()> {
         if channel >= self.open_wav.channels() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
@@ -155,8 +258,10 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
             self.open_wav.writer.seek(SeekFrom::End(0))?;
 
             let padding_size = (self.open_wav.samples_written - sample + 1) * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
-            let padding = vec![0u8; padding_size as usize];
-            self.open_wav.writer.write(&padding)?;
+            let padding = vec![0u8; 1];
+            for _ in 0..padding_size {
+                self.open_wav.writer.write(&padding)?;
+            }
             self.open_wav.samples_written = sample + 1;
         }
 
@@ -167,10 +272,10 @@ impl<TWriter: Write + Seek> RandomAccessWavWriter<f32, TWriter> for RandomAccess
         self.open_wav.writer.seek(SeekFrom::Start(position as u64))?;
         
         self.open_wav.chunk_size_written = false;
-        self.open_wav.writer.write_f32(value)
+        (*self.write_sample_to_stream)(&mut self.open_wav.writer, value)
     }
 
-    fn flush(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> Result<()> {
         self.open_wav.flush()
     }
 }
