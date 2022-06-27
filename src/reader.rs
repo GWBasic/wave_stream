@@ -96,6 +96,6 @@ impl<T> ReadEx for T where T: Read {
         self.read_fixed_size(&mut buf[..])?;
 
         let buf = [buf[0], buf[1], buf[2], 0];
-        Ok(i32::from_le_bytes(buf))
+        Ok(i32::from_le_bytes(buf) >> 8)
     }
 }

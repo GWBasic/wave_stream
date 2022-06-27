@@ -135,9 +135,9 @@ mod tests {
         read_random(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_random_access_int_24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]),
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]),
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00])).unwrap();
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
     }
 
     #[test]
@@ -235,9 +235,9 @@ mod tests {
         read_stream(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_stream_int_24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]),
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]),
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00])).unwrap();
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
     }
 
     #[test]
@@ -403,6 +403,33 @@ mod tests {
 
             Ok(())
         }));
+    }
+
+    #[test]
+    fn write_stream_int_8() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_int_8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_int_8_reader()))
+    }
+
+    #[test]
+    fn write_stream_int_16() {
+        write_stream(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_stream_int_16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_int_16_reader()))
+    }
+
+    #[test]
+    fn write_stream_int_24() {
+        write_stream(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_stream_int_24_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_24(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_int_24_reader()))
     }
 
     #[test]

@@ -66,7 +66,8 @@ impl<T> WriteEx for T where T: Write {
             return Result::Err(Error::new(ErrorKind::InvalidData, "Value must be a valid 24-bit integer"));
         }
 
-        let bytes = v.to_le_bytes();
+        let bytes = (v << 8).to_le_bytes();
+
         let bytes = [bytes[0], bytes[1], bytes[2]];
         self.write(&bytes)?;
 
