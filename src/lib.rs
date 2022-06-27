@@ -370,45 +370,61 @@ mod tests {
         get_random_access_writer: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>) -> Result<RandomAccessWavWriter<T, BufWriter<File>>>>,
         convert_sample: Box<dyn Fn(i32) -> T>) {
             
-            test_with_file(Box::new(move |path| {
-                let header = WavHeader {
-                    sample_format,
-                    channels: 10,
-                    sample_rate: 96000
-                };
-                let open_wav = write_wav_to_file_path(path, header)?;
-                let mut writer = get_random_access_writer(open_wav)?;
-    
-                for sample in 0..100u32 {
-                    for channel in 0..writer.info().channels() {
-                        let sample_value = (sample as i32) * 10 + (channel as i32);
-                        writer.write_sample(sample, channel, convert_sample(sample_value))?;
-                    }
+        test_with_file(Box::new(move |path| {
+            let header = WavHeader {
+                sample_format,
+                channels: 10,
+                sample_rate: 96000
+            };
+            let open_wav = write_wav_to_file_path(path, header)?;
+            let mut writer = get_random_access_writer(open_wav)?;
+
+            for sample in 0..100u32 {
+                for channel in 0..writer.info().channels() {
+                    let sample_value = (sample as i32) * 10 + (channel as i32);
+                    writer.write_sample(sample, channel, convert_sample(sample_value))?;
                 }
-    
-                writer.flush()?;
-    
-                let open_wav = read_wav_from_file_path(path)?;
-                assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
-    
-                let mut reader = get_random_access_reader(open_wav)?;
-    
-                for sample in 0..100 {
-                    for channel in 0..reader.info().channels() {
-                        let value = reader.read_sample(sample, channel)?;
-                        let sample_value = (sample as i32) * 10 + (channel as i32);
-                        assert_eq!(convert_sample(sample_value), value, "Wrong sample read at {sample}, channel {channel}");
-                    }
+            }
+
+            writer.flush()?;
+
+            let open_wav = read_wav_from_file_path(path)?;
+            assert_eq!(100, open_wav.len_samples(), "Wrong length of samples");
+
+            let mut reader = get_random_access_reader(open_wav)?;
+
+            for sample in 0..100 {
+                for channel in 0..reader.info().channels() {
+                    let value = reader.read_sample(sample, channel)?;
+                    let sample_value = (sample as i32) * 10 + (channel as i32);
+                    assert_eq!(convert_sample(sample_value), value, "Wrong sample read at {sample}, channel {channel}");
                 }
-    
-                Ok(())
-            }));
-        }
+            }
+
+            Ok(())
+        }));
+    }
 
     #[test]
     fn write_stream_float() {
-        test_with_file(Box::new(|path| {
-            let source_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav"))?;
+        write_stream(
+            Path::new("test_data/short_float.wav"),
+            Box::new(|open_wav| open_wav.get_stream_float_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_float(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_float_reader()))
+    }
+
+    fn write_stream<T: Debug + PartialEq + Default + Clone + 'static>(
+        read_path: &Path,
+        get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T, BufReader<File>>>>,
+        write_all: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>, StreamWavReaderIterator<T, BufReader<File>>) -> Result<()>>,
+        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>) {
+        
+        let read_path_buf = read_path.to_path_buf();
+        
+        test_with_file(Box::new(move |path| {
+            let read_path = read_path_buf.as_path();
+            let source_wav = read_wav_from_file_path(read_path)?;
     
             let header = WavHeader {
                 sample_format: source_wav.sample_format(),
@@ -417,10 +433,10 @@ mod tests {
             };
             let open_wav = write_wav_to_file_path(path, header)?;
 
-            let read_samples_iter = source_wav.get_stream_float_reader()?.into_iter();
-            open_wav.write_all_f32(read_samples_iter)?;
+            let read_samples_iter = get_stream_reader(source_wav)?.into_iter();
+            write_all(open_wav, read_samples_iter)?;
 
-            let expected_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav"))?;
+            let expected_wav = read_wav_from_file_path(read_path)?;
             let actual_wav = read_wav_from_file_path(path)?;
 
             assert_eq!(expected_wav.channels(), actual_wav.channels());
@@ -429,8 +445,8 @@ mod tests {
             let len_samples = expected_wav.len_samples();
             let channels = expected_wav.channels();
 
-            let mut expected_wav_reader = expected_wav.get_random_access_float_reader()?;
-            let mut actual_wav_reader = actual_wav.get_random_access_float_reader()?;
+            let mut expected_wav_reader = get_random_access_reader(expected_wav)?;
+            let mut actual_wav_reader = get_random_access_reader(actual_wav)?;
 
             for sample_ctr in 0..len_samples {
                 for channel_ctr in 0..channels {

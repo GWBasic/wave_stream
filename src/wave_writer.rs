@@ -87,7 +87,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         })
     }
 
-    pub fn write_all_f32<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_float<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<f32>>>
     {
