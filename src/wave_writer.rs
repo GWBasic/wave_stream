@@ -4,23 +4,27 @@ use crate::WriteEx;
 use crate::SampleFormat;
 use crate::WavHeader;
 
-pub struct OpenWavWriter<TWriter: Write + Seek> {
-    writer: TWriter,
+pub trait WriteSeek : Write + Seek {}
+
+impl<TWriteSeek: Write + Seek> WriteSeek for TWriteSeek {}
+
+pub struct OpenWavWriter {
+    writer: Box<dyn WriteSeek>,
     header: WavHeader,
     data_start: u32,
     chunk_size_written: bool,
     samples_written: u32
 }
 
-impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
-    pub fn new(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
+impl OpenWavWriter {
+    pub fn new<TWriter: 'static + WriteSeek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter> {
         writer.write_str("data")?;
         writer.write_u32(0)?;
 
         let data_start = writer.stream_position()? as u32;
 
         Ok(OpenWavWriter {
-            writer,
+            writer: Box::new(writer),
             header,
             data_start,
             chunk_size_written: false,
@@ -36,12 +40,12 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_int_8_writer(self) -> Result<RandomAccessWavWriter<i8, TWriter>> {
+    pub fn get_random_access_int_8_writer(self) -> Result<RandomAccessWavWriter<i8>> {
         match self.header.sample_format {
             SampleFormat::Int8 => {
                 Ok(RandomAccessWavWriter {
                     open_wav: self,
-                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i8| writer.write_i8(value))
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value))
                 })
             },
             _ => {
@@ -50,12 +54,12 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_int_16_writer(self) -> Result<RandomAccessWavWriter<i16, TWriter>> {
+    pub fn get_random_access_int_16_writer(self) -> Result<RandomAccessWavWriter<i16>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavWriter {
                     open_wav: self,
-                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i16| writer.write_i16(value))
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value))
                 })
             },
             _ => {
@@ -64,12 +68,12 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_int_24_writer(self) -> Result<RandomAccessWavWriter<i32, TWriter>> {
+    pub fn get_random_access_int_24_writer(self) -> Result<RandomAccessWavWriter<i32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavWriter {
                     open_wav: self,
-                    write_sample_to_stream: Box::new(|writer: &mut TWriter, value: i32| writer.write_i24(value))
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24(value))
                 })
             },
             _ => {
@@ -78,12 +82,12 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
         }
     }
 
-    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32, TWriter>> {
+    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32>> {
         self.assert_float()?;
 
         Ok(RandomAccessWavWriter {
             open_wav: self,
-            write_sample_to_stream: Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value))
+            write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: f32| writer.write_f32(value))
         })
     }
 
@@ -95,7 +99,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             SampleFormat::Int8 => {
                 self.write_all(
                     samples_itr,
-                    Box::new(|writer: &mut TWriter, value: i8| writer.write_i8(value)))
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value)))
             },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
@@ -111,7 +115,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             SampleFormat::Int16 => {
                 self.write_all(
                     samples_itr,
-                    Box::new(|writer: &mut TWriter, value: i16| writer.write_i16(value)))
+                    Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value)))
                     },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
@@ -127,7 +131,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             SampleFormat::Int24 => {
                 self.write_all(
                     samples_itr,
-                    Box::new(|writer: &mut TWriter, value: i32| writer.write_i24(value)))
+                    Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24(value)))
             },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
@@ -143,7 +147,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
             SampleFormat::Float => {
                 self.write_all(
                     samples_itr,
-                    Box::new(|writer: &mut TWriter, value: f32| writer.write_f32(value)))
+                    Box::new(|mut writer: &mut dyn Write, value: f32| writer.write_f32(value)))
             },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to float int unsupported"))
@@ -154,7 +158,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     pub fn write_all<T, TIterator>(
         mut self,
         samples_itr: TIterator,
-        write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>) -> Result<()>
+        write_sample_to_stream: Box<dyn Fn(&mut dyn Write, T) -> Result<()>>) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<T>>>
     {
@@ -230,7 +234,7 @@ impl<TWriter: Write + Seek> OpenWavWriter<TWriter> {
     }
 }
 
-impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
+impl Drop for OpenWavWriter {
     fn drop(&mut self) {
         if !self.chunk_size_written {
             self.flush().unwrap();
@@ -238,13 +242,13 @@ impl<TWriter: Write + Seek> Drop for OpenWavWriter<TWriter> {
     }
 }
 
-pub struct RandomAccessWavWriter<T, TWriter: Write + Seek> {
-    open_wav: OpenWavWriter<TWriter>,
-    write_sample_to_stream: Box<dyn Fn(&mut TWriter, T) -> Result<()>>
+pub struct RandomAccessWavWriter<T> {
+    open_wav: OpenWavWriter,
+    write_sample_to_stream: Box<dyn Fn(&mut dyn Write, T) -> Result<()>>
 }
 
-impl<T, TWriter: Write + Seek> RandomAccessWavWriter<T, TWriter> {
-    pub fn info(&self) -> &OpenWavWriter<TWriter> {
+impl<T> RandomAccessWavWriter<T> {
+    pub fn info(&self) -> &OpenWavWriter {
         &(self.open_wav)
     }
 
