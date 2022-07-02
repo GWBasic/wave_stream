@@ -21,7 +21,7 @@ pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufRead
     read_wav(reader)
 }
 
-pub fn read_wav<TReader: Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
+pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str("RIFF", ErrorKind::InvalidInput, "Not a WAVE file (Missing RIFF Header)")?;
     let _file_length = reader.read_u32()?;
@@ -252,7 +252,7 @@ mod tests {
 
     fn read_stream<T: Debug + PartialEq + Default + Clone>(
         path: &Path,
-        get_stream_reader: Box<dyn FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<StreamWavReader<T, Take<BufReader<File>>>>>,
+        get_stream_reader: Box<dyn FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<StreamWavReader<T>>>,
         expected_sample_0: T,
         expected_sample_1: T,
         expected_sample_end: T)
@@ -443,8 +443,8 @@ mod tests {
 
     fn write_stream<T: Debug + PartialEq + Default + Clone + 'static>(
         read_path: &Path,
-        get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T, BufReader<File>>>>,
-        write_all: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>, StreamWavReaderIterator<T, BufReader<File>>) -> Result<()>>,
+        get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T>>>,
+        write_all: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>, StreamWavReaderIterator<T>) -> Result<()>>,
         get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>) {
         
         let read_path_buf = read_path.to_path_buf();
