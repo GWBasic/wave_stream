@@ -93,49 +93,9 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
             Err(Error::new(ErrorKind::InvalidData, "Converting to float unsupported"))
         }
     }
-
-    pub fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8>> {
-        self.assert_int_8()?;
-
-        Ok(StreamWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
-        })
-    }
-
-    pub fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16>> {
-        match self.header.sample_format {
-            SampleFormat::Int16 => {
-                Ok(StreamWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16())
-                })
-            },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
-        }
-    }
-
-    pub fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32>> {
-        match self.header.sample_format {
-            SampleFormat::Int24 => {
-                Ok(StreamWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24())
-                })
-            },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
-        }
-    }
-
-    pub fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>> {
-        self.assert_float()?;
-
-        Ok(StreamWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
-        })
-    }
 }
+
+type ReadSampleFromStream<T> = fn(&mut dyn Read) -> Result<T>;
 
 mod private_parts {
     use std::io::{ Read, Seek };
@@ -150,7 +110,12 @@ mod private_parts {
     }
 }
 
-pub trait StreamOpenWavReader: private_parts::POpenWavReader { }
+pub trait StreamOpenWavReader: private_parts::POpenWavReader {
+    fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8>>;
+    fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16>>;
+    fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32>>;
+    fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>>;
+}
 
 impl<TReader: Read> private_parts::POpenWavReader for OpenWavReader<TReader> {
     fn data_start(&self) -> u32 {
@@ -162,7 +127,49 @@ impl<TReader: Read> private_parts::POpenWavReader for OpenWavReader<TReader> {
     }
 }
 
-impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {}
+impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
+    fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8>> {
+        self.assert_int_8()?;
+
+        Ok(StreamWavReader {
+            open_wav: Box::new(self),
+            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
+        })
+    }
+    
+    fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16>> {
+        match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(StreamWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
+        }
+    }
+
+    fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32>> {
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(StreamWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
+    }
+
+    fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>> {
+        self.assert_float()?;
+
+        Ok(StreamWavReader {
+            open_wav: Box::new(self),
+            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
+        })
+    }
+}
 
 pub trait RandomAccessOpenWavReader: private_parts::PRandomAccessOpenWavReader {
     fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>>;
@@ -223,7 +230,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
 
 pub struct RandomAccessWavReader<T> {
     open_wav: Box<dyn RandomAccessOpenWavReader>,
-    read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>
+    read_sample_from_stream: Box<ReadSampleFromStream<T>>
 }
 
 impl<T> RandomAccessWavReader<T> {
@@ -254,7 +261,7 @@ impl<T> RandomAccessWavReader<T> {
 
 pub struct StreamWavReader<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
-    read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>
+    read_sample_from_stream: Box<ReadSampleFromStream<T>>
 }
 
 impl<T> StreamWavReader<T> {
@@ -278,7 +285,7 @@ impl<T> IntoIterator for StreamWavReader<T> {
 
 pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
-    read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>,
+    read_sample_from_stream: Box<ReadSampleFromStream<T>>,
     current_sample: u32
 }
 
