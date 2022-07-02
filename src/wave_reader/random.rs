@@ -1,6 +1,8 @@
 use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom };
 
 use crate::OpenWavReader;
+use crate::OpenWav;
+use crate::OpenWavWithLength;
 use crate::ReadEx;
 use crate::SampleFormat;
 use crate::RandomAccessWavReader;
@@ -69,7 +71,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
 }
 
 impl<T> RandomAccessWavReader<T> {
-    pub fn info(&self) -> &Box<dyn RandomAccessOpenWavReader> {
+    pub fn info(&self) -> &Box<dyn OpenWavWithLength> {
         &self.open_wav
     }
 

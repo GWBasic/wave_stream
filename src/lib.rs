@@ -2,12 +2,14 @@ use std::fs::File;
 use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Seek, Write };
 use std::path::Path;
 
+pub mod open_wav;
 pub mod reader;
 pub mod wave_header;
 pub mod wave_reader;
 pub mod wave_writer;
 pub mod writer;
 
+use open_wav::{ OpenWav, OpenWavWithLength };
 use reader::ReadEx;
 use wave_header::*;
 use wave_reader::*;

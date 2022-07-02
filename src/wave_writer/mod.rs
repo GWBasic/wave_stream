@@ -1,5 +1,7 @@
 use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
 
+use crate::open_wav::OpenWav;
+use crate::open_wav::OpenWavWithLength;
 use crate::WriteEx;
 use crate::SampleFormat;
 use crate::WavHeader;
@@ -45,31 +47,6 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn sample_format(&self) -> SampleFormat {
-        self.header.sample_format
-    }
-
-    pub fn channels(&self) -> u16 {
-        self.header.channels
-    }
-
-    pub fn sample_rate(&self) -> u32 {
-        self.header.sample_rate
-    }
-
-    pub fn bits_per_sample(&self) -> u16 {
-        self.bytes_per_sample() * 8
-    }
-
-    pub fn bytes_per_sample(&self) -> u16 {
-        match self.header.sample_format {
-            SampleFormat::Float => 4,
-            SampleFormat::Int24 => 3,
-            SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1
-        }
-    }
-
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
@@ -85,6 +62,39 @@ impl OpenWavWriter {
         self.writer.flush()?;
 
         Ok(())
+    }
+}
+
+impl OpenWav for OpenWavWriter {
+    fn sample_format(&self) -> SampleFormat {
+        self.header.sample_format
+    }
+
+    fn channels(&self) -> u16 {
+        self.header.channels
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.header.sample_rate
+    }
+
+    fn bits_per_sample(&self) -> u16 {
+        self.bytes_per_sample() * 8
+    }
+
+    fn bytes_per_sample(&self) -> u16 {
+        match self.header.sample_format {
+            SampleFormat::Float => 4,
+            SampleFormat::Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1
+        }
+    }
+}
+
+impl OpenWavWithLength for OpenWavWriter {
+    fn len_samples(&self) -> u32 {
+        self.samples_written
     }
 }
 

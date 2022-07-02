@@ -1,5 +1,7 @@
 use std::io::{ Error, ErrorKind, Read, Result };
 
+use crate::open_wav::OpenWav;
+use crate::open_wav::OpenWavWithLength;
 use crate::ReadEx;
 use crate::SampleFormat;
 use crate::WavHeader;
@@ -9,15 +11,6 @@ pub struct OpenWavReader<TReader: Read> {
     header: WavHeader,
     data_length: u32,
     data_start: u32,
-}
-
-pub trait OpenWav {
-    fn sample_format(&self) -> SampleFormat;
-    fn channels(&self) -> u16;
-    fn sample_rate(&self) -> u32;
-    fn bits_per_sample(&self) -> u16;
-    fn bytes_per_sample(&self) -> u16;
-    fn len_samples(&self) -> u32;
 }
 
 impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
@@ -45,7 +38,9 @@ impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
             SampleFormat::Int8 => 1
         }
     }
+}
 
+impl<TReader: 'static + Read> OpenWavWithLength for OpenWavReader<TReader> {
     fn len_samples(&self) -> u32 {
         self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
     }
