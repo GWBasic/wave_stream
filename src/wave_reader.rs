@@ -12,6 +12,46 @@ pub struct OpenWavReader<TReader: Read> {
     data_start: u32,
 }
 
+pub trait OpenWav {
+    fn sample_format(&self) -> SampleFormat;
+    fn channels(&self) -> u16;
+    fn sample_rate(&self) -> u32;
+    fn bits_per_sample(&self) -> u16;
+    fn bytes_per_sample(&self) -> u16;
+    fn len_samples(&self) -> u32;
+}
+
+impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
+    fn sample_format(&self) -> SampleFormat {
+        self.header.sample_format
+    }
+
+    fn channels(&self) -> u16 {
+        self.header.channels
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.header.sample_rate
+    }
+
+    fn bits_per_sample(&self) -> u16 {
+        self.bytes_per_sample() * 8
+    }
+
+    fn bytes_per_sample(&self) -> u16 {
+        match self.header.sample_format {
+            SampleFormat::Float => 4,
+            SampleFormat:: Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1
+        }
+    }
+
+    fn len_samples(&self) -> u32 {
+        self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
+    }
+}
+
 impl<TReader: Read> OpenWavReader<TReader> {
     pub fn new(mut reader: TReader, header: WavHeader, position: u32) -> Result<OpenWavReader<TReader>> {
         let mut data_start = position;
@@ -97,64 +137,24 @@ impl<TReader: Read> OpenWavReader<TReader> {
     }
 }
 
-pub trait OpenWav {
-    fn sample_format(&self) -> SampleFormat;
-    fn channels(&self) -> u16;
-    fn sample_rate(&self) -> u32;
-    fn bits_per_sample(&self) -> u16;
-    fn bytes_per_sample(&self) -> u16;
-    fn len_samples(&self) -> u32;
-}
-
-impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
-    fn sample_format(&self) -> SampleFormat {
-        self.header.sample_format
-    }
-
-    fn channels(&self) -> u16 {
-        self.header.channels
-    }
-
-    fn sample_rate(&self) -> u32 {
-        self.header.sample_rate
-    }
-
-    fn bits_per_sample(&self) -> u16 {
-        self.bytes_per_sample() * 8
-    }
-
-    fn bytes_per_sample(&self) -> u16 {
-        match self.header.sample_format {
-            SampleFormat::Float => 4,
-            SampleFormat:: Int24 => 3,
-            SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1
-        }
-    }
-
-    fn len_samples(&self) -> u32 {
-        self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
-    }
-}
-
 mod private_parts {
     use std::io::{ Read, Seek };
 
-    pub trait OpenWavReaderCanAccessRandomlyPrivate: super::OpenWav {
+    pub trait PRandomAccessOpenWavReader: super::OpenWav {
         fn data_start(&self) -> u32;
         fn seeker(&mut self) -> &mut (dyn Seek);
         fn reader(&mut self) -> &mut (dyn Read);
     }
 }
 
-pub trait OpenWavReaderCanAccessRandomly: private_parts::OpenWavReaderCanAccessRandomlyPrivate {
+pub trait RandomAccessOpenWavReader: private_parts::PRandomAccessOpenWavReader {
     fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>>;
     fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>>;
     fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>>;
     fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>>;
 }
 
-impl<TReader: Read + Seek> private_parts::OpenWavReaderCanAccessRandomlyPrivate for OpenWavReader<TReader> {
+impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWavReader<TReader> {
     fn data_start(&self) -> u32 {
         self.data_start
     }
@@ -168,7 +168,7 @@ impl<TReader: Read + Seek> private_parts::OpenWavReaderCanAccessRandomlyPrivate 
     }
 }
 
-impl<TReader: 'static + Read + Seek> OpenWavReaderCanAccessRandomly for OpenWavReader<TReader> {
+impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader<TReader> {
     fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>> {
         self.assert_int_8()?;
 
@@ -213,12 +213,12 @@ impl<TReader: 'static + Read + Seek> OpenWavReaderCanAccessRandomly for OpenWavR
 }
 
 pub struct RandomAccessWavReader<T> {
-    open_wav: Box<dyn OpenWavReaderCanAccessRandomly>,
+    open_wav: Box<dyn RandomAccessOpenWavReader>,
     read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>
 }
 
 impl<T> RandomAccessWavReader<T> {
-    pub fn info(&self) -> &Box<dyn OpenWavReaderCanAccessRandomly> {
+    pub fn info(&self) -> &Box<dyn RandomAccessOpenWavReader> {
         &self.open_wav
     }
 
