@@ -21,7 +21,7 @@ pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufRead
     read_wav(reader)
 }
 
-pub fn read_wav<TReader: Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
+pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str("RIFF", ErrorKind::InvalidInput, "Not a WAVE file (Missing RIFF Header)")?;
     let _file_length = reader.read_u32()?;
@@ -37,14 +37,14 @@ pub fn read_wav<TReader: Read>(mut reader: TReader) -> Result<OpenWavReader<TRea
     OpenWavReader::new(reader, header, 20 + subchunk_size)
 }
 
-pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter<BufWriter<File>>> {
+pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;
     let writer = BufWriter::new(file);
 
     write_wav(writer, header)
 }
 
-pub fn write_wav<TWriter: Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter<TWriter>> {
+pub fn write_wav<TWriter: 'static + Write + Seek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter> {
     // Write RIFF header and format
     writer.write(b"RIFF    WAVE")?;
 
@@ -152,7 +152,7 @@ mod tests {
 
     fn read_random<T: Debug + PartialEq>(
         path: &Path,
-        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>,
+        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>,
         expected_sample_0: T,
         expected_sample_1: T,
         expected_sample_end: T)
@@ -252,7 +252,7 @@ mod tests {
 
     fn read_stream<T: Debug + PartialEq + Default + Clone>(
         path: &Path,
-        get_stream_reader: Box<dyn FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<StreamWavReader<T, Take<BufReader<File>>>>>,
+        get_stream_reader: Box<dyn FnOnce(OpenWavReader<Take<BufReader<File>>>) -> Result<StreamWavReader<T>>>,
         expected_sample_0: T,
         expected_sample_1: T,
         expected_sample_end: T)
@@ -366,8 +366,8 @@ mod tests {
 
     fn write_random<T: Debug + PartialEq + 'static>(
         sample_format: SampleFormat,
-        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>,
-        get_random_access_writer: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>) -> Result<RandomAccessWavWriter<T, BufWriter<File>>>>,
+        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>,
+        get_random_access_writer: Box<dyn FnOnce(OpenWavWriter) -> Result<RandomAccessWavWriter<T>>>,
         convert_sample: Box<dyn Fn(i32) -> T>) {
             
         test_with_file(Box::new(move |path| {
@@ -443,9 +443,9 @@ mod tests {
 
     fn write_stream<T: Debug + PartialEq + Default + Clone + 'static>(
         read_path: &Path,
-        get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T, BufReader<File>>>>,
-        write_all: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>, StreamWavReaderIterator<T, BufReader<File>>) -> Result<()>>,
-        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>) {
+        get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T>>>,
+        write_all: Box<dyn FnOnce(OpenWavWriter, StreamWavReaderIterator<T>) -> Result<()>>,
+        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>) {
         
         let read_path_buf = read_path.to_path_buf();
         
