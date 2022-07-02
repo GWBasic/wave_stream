@@ -1,7 +1,6 @@
 use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
 
 use super::OpenWavWriter;
-use super::RandomAccessWavWriter;
 use super::SampleFormat;
 use super::WriteEx;
 
