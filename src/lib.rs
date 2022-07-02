@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{ BufReader, BufWriter, ErrorKind, Read, Result, Seek, Write };
 use std::path::Path;
 
+pub mod open_wav;
 pub mod reader;
 pub mod wave_header;
 pub mod wave_reader;
@@ -58,8 +59,10 @@ mod tests {
     use std::fmt::Debug;
     use std::io::Take;
 
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
+    use crate::open_wav::OpenWav;
 
     #[test]
     fn open_sanity() {

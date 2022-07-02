@@ -1,5 +1,6 @@
 use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
 
+use crate::open_wav::OpenWav;
 use super::OpenWavWriter;
 use super::SampleFormat;
 use super::WriteEx;
