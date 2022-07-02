@@ -152,7 +152,7 @@ mod tests {
 
     fn read_random<T: Debug + PartialEq>(
         path: &Path,
-        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>,
+        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>,
         expected_sample_0: T,
         expected_sample_1: T,
         expected_sample_end: T)
@@ -366,7 +366,7 @@ mod tests {
 
     fn write_random<T: Debug + PartialEq + 'static>(
         sample_format: SampleFormat,
-        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>,
+        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>,
         get_random_access_writer: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>) -> Result<RandomAccessWavWriter<T, BufWriter<File>>>>,
         convert_sample: Box<dyn Fn(i32) -> T>) {
             
@@ -445,7 +445,7 @@ mod tests {
         read_path: &Path,
         get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T, BufReader<File>>>>,
         write_all: Box<dyn FnOnce(OpenWavWriter<BufWriter<File>>, StreamWavReaderIterator<T, BufReader<File>>) -> Result<()>>,
-        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T, BufReader<File>>>>) {
+        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>) {
         
         let read_path_buf = read_path.to_path_buf();
         

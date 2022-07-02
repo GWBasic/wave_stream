@@ -95,24 +95,35 @@ impl<TReader: Read> OpenWavReader<TReader> {
             read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_f32())
         })
     }
+}
 
-    pub fn sample_format(&self) -> SampleFormat {
+pub trait OpenWav {
+    fn sample_format(&self) -> SampleFormat;
+    fn channels(&self) -> u16;
+    fn sample_rate(&self) -> u32;
+    fn bits_per_sample(&self) -> u16;
+    fn bytes_per_sample(&self) -> u16;
+    fn len_samples(&self) -> u32;
+}
+
+impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
+    fn sample_format(&self) -> SampleFormat {
         self.header.sample_format
     }
 
-    pub fn channels(&self) -> u16 {
+    fn channels(&self) -> u16 {
         self.header.channels
     }
 
-    pub fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> u32 {
         self.header.sample_rate
     }
 
-    pub fn bits_per_sample(&self) -> u16 {
+    fn bits_per_sample(&self) -> u16 {
         self.bytes_per_sample() * 8
     }
 
-    pub fn bytes_per_sample(&self) -> u16 {
+    fn bytes_per_sample(&self) -> u16 {
         match self.header.sample_format {
             SampleFormat::Float => 4,
             SampleFormat:: Int24 => 3,
@@ -121,63 +132,94 @@ impl<TReader: Read> OpenWavReader<TReader> {
         }
     }
 
-    pub fn len_samples(&self) -> u32 {
+    fn len_samples(&self) -> u32 {
         self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
     }
 }
 
-impl<TReader: Read + Seek> OpenWavReader<TReader> {
-    pub fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8, TReader>> {
+mod private_parts {
+    use std::io::{ Read, Seek };
+
+    pub trait OpenWavReaderCanAccessRandomlyPrivate: super::OpenWav {
+        fn data_start(&self) -> u32;
+        fn seeker(&mut self) -> &mut (dyn Seek);
+        fn reader(&mut self) -> &mut (dyn Read);
+    }
+}
+
+pub trait OpenWavReaderCanAccessRandomly: private_parts::OpenWavReaderCanAccessRandomlyPrivate {
+    fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>>;
+    fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>>;
+    fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>>;
+    fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>>;
+}
+
+impl<TReader: Read + Seek> private_parts::OpenWavReaderCanAccessRandomlyPrivate for OpenWavReader<TReader> {
+    fn data_start(&self) -> u32 {
+        self.data_start
+    }
+
+    fn seeker(&mut self) -> &mut (dyn Seek) {
+        &mut self.reader as &mut (dyn Seek)
+    }
+
+    fn reader(&mut self) -> &mut (dyn Read) {
+        &mut self.reader as &mut (dyn Read)
+    }
+}
+
+impl<TReader: 'static + Read + Seek> OpenWavReaderCanAccessRandomly for OpenWavReader<TReader> {
+    fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>> {
         self.assert_int_8()?;
 
         Ok(RandomAccessWavReader {
-            open_wav: self,
-            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i8())
+            open_wav: Box::new(self),
+            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
         })
     }
 
-    pub fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16, TReader>> {
+    fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavReader {
-                    open_wav: self,
-                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i16())
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16())
                 })
             },
             _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
         }
     }
 
-    pub fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32, TReader>> {
+    fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavReader {
-                    open_wav: self,
-                    read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_i24())
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24())
                 })
             },
             _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
         }
     }
 
-    pub fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32, TReader>> {
+    fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>> {
         self.assert_float()?;
 
         Ok(RandomAccessWavReader {
-            open_wav: self,
-            read_sample_from_stream: Box::new(|reader: &mut TReader| reader.read_f32())
+            open_wav: Box::new(self),
+            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
         })
     }
 }
 
-pub struct RandomAccessWavReader<T, TReader: Read + Seek> {
-    open_wav: OpenWavReader<TReader>,
-    read_sample_from_stream: Box<dyn Fn(&mut TReader) -> Result<T>>
+pub struct RandomAccessWavReader<T> {
+    open_wav: Box<dyn OpenWavReaderCanAccessRandomly>,
+    read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>
 }
 
-impl<T, TReader: Read + Seek> RandomAccessWavReader<T, TReader> {
-    pub fn info(&self) -> &OpenWavReader<TReader> {
-        &(self.open_wav)
+impl<T> RandomAccessWavReader<T> {
+    pub fn info(&self) -> &Box<dyn OpenWavReaderCanAccessRandomly> {
+        &self.open_wav
     }
 
     pub fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T> {
@@ -191,10 +233,13 @@ impl<T, TReader: Read + Seek> RandomAccessWavReader<T, TReader> {
 
         let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
         let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as u32;
-        let position = self.open_wav.data_start + sample_in_bytes;
-        self.open_wav.reader.seek(SeekFrom::Start(position as u64))?;
+        let position = self.open_wav.data_start() + sample_in_bytes;
 
-        (*self.read_sample_from_stream)(&mut self.open_wav.reader)
+        let seeker = self.open_wav.seeker();
+        seeker.seek(SeekFrom::Start(position as u64))?;
+
+        let reader = self.open_wav.reader();
+        (*self.read_sample_from_stream)(reader)
     }
 }
 
