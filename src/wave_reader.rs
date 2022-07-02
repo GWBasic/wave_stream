@@ -252,18 +252,18 @@ impl<T> RandomAccessWavReader<T> {
     }
 }
 
-pub struct StreamWavReader<T: Default + Clone> {
+pub struct StreamWavReader<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>
 }
 
-impl<T: Default + Clone> StreamWavReader<T> {
+impl<T> StreamWavReader<T> {
     pub fn info(&self) -> &Box<dyn StreamOpenWavReader> {
         &self.open_wav
     }
 }
 
-impl<T: Default + Clone> IntoIterator for StreamWavReader<T> {
+impl<T> IntoIterator for StreamWavReader<T> {
     type Item = Result<Vec<T>>;
     type IntoIter = StreamWavReaderIterator<T>;
 
@@ -276,13 +276,13 @@ impl<T: Default + Clone> IntoIterator for StreamWavReader<T> {
     }
 }
 
-pub struct StreamWavReaderIterator<T: Default + Clone> {
+pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<dyn Fn(&mut dyn Read) -> Result<T>>,
     current_sample: u32
 }
 
-impl<T: Default + Clone> Iterator for StreamWavReaderIterator<T> {
+impl<T> Iterator for StreamWavReaderIterator<T> {
     type Item = Result<Vec<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -290,17 +290,19 @@ impl<T: Default + Clone> Iterator for StreamWavReaderIterator<T> {
             None
         } else {
             let num_channels: usize = self.open_wav.channels().into();
-            let mut samples = vec![Default::default(); num_channels];
+            let mut samples = Vec::new();
 
-            for channel in 0..num_channels {
+            for _channel in 0..num_channels {
                 let read_result = (*self.read_sample_from_stream)(&mut self.open_wav.reader());
-                samples[channel] = match read_result {
+                let sample = match read_result {
                     Ok(sample) => sample,
                     Err(err) => {
                         self.current_sample = u32::MAX;
                         return Some(Err(err))
                     }
-                }
+                };
+
+                samples.push(sample);
             }
 
             self.current_sample += 1;
