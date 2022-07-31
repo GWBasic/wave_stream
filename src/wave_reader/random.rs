@@ -83,8 +83,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
                     open_wav: Box::new(self),
                     read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
                 })
-                    },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+            },
         }
     }
 }
