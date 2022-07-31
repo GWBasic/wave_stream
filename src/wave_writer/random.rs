@@ -7,7 +7,7 @@ use super::SampleFormat;
 use super::WriteEx;
 
 impl OpenWavWriter {
-    pub fn get_random_access_int_8_writer(self) -> Result<RandomAccessWavWriter<i8>> {
+    pub fn get_random_access_i8_writer(self) -> Result<RandomAccessWavWriter<i8>> {
         match self.header.sample_format {
             SampleFormat::Int8 => {
                 Ok(RandomAccessWavWriter {
@@ -21,7 +21,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn get_random_access_int_16_writer(self) -> Result<RandomAccessWavWriter<i16>> {
+    pub fn get_random_access_i16_writer(self) -> Result<RandomAccessWavWriter<i16>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavWriter {
@@ -35,7 +35,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn get_random_access_int_24_writer(self) -> Result<RandomAccessWavWriter<i32>> {
+    pub fn get_random_access_i24_writer(self) -> Result<RandomAccessWavWriter<i32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavWriter {
@@ -55,7 +55,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn get_random_access_float_writer(self) -> Result<RandomAccessWavWriter<f32>> {
+    pub fn get_random_access_f32_writer(self) -> Result<RandomAccessWavWriter<f32>> {
         self.assert_float()?;
 
         Ok(RandomAccessWavWriter {

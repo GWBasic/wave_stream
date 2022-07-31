@@ -9,7 +9,7 @@ use crate::StreamWavReader;
 use crate::StreamWavReaderIterator;
 
 impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
-    fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8>> {
+    fn get_stream_i8_reader(self) -> Result<StreamWavReader<i8>> {
         self.assert_int_8()?;
 
         Ok(StreamWavReader {
@@ -18,7 +18,7 @@ impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
         })
     }
     
-    fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16>> {
+    fn get_stream_i16_reader(self) -> Result<StreamWavReader<i16>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
                 Ok(StreamWavReader {
@@ -30,7 +30,7 @@ impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
         }
     }
 
-    fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32>> {
+    fn get_stream_i24_reader(self) -> Result<StreamWavReader<i32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(StreamWavReader {
@@ -42,7 +42,7 @@ impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
         }
     }
 
-    fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>> {
+    fn get_stream_f32_reader(self) -> Result<StreamWavReader<f32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(StreamWavReader {

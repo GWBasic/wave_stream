@@ -6,7 +6,7 @@ use super::SampleFormat;
 use super::WriteEx;
 
 impl OpenWavWriter {
-    pub fn write_all_int_8<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i8<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i8>>>
     {
@@ -22,7 +22,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn write_all_int_16<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i16<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i16>>>
     {
@@ -38,7 +38,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn write_all_int_24<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i24<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i32>>>
     {
@@ -59,7 +59,7 @@ impl OpenWavWriter {
         }
     }
 
-    pub fn write_all_float<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_f32<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<f32>>>
     {

@@ -25,7 +25,7 @@ impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWav
 }
 
 impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader<TReader> {
-    fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>> {
+    fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>> {
         self.assert_int_8()?;
 
         Ok(RandomAccessWavReader {
@@ -34,7 +34,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
         })
     }
 
-    fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>> {
+    fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>> {
         match self.header.sample_format {
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavReader {
@@ -46,7 +46,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
         }
     }
 
-    fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>> {
+    fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavReader {
@@ -58,7 +58,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
         }
     }
 
-    fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>> {
+    fn get_random_access_f32_reader(self) -> Result<RandomAccessWavReader<f32>> {
         match self.header.sample_format {
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavReader {
