@@ -8,6 +8,9 @@ pub const INT_24_DIVIDE_FOR_FLOAT:f32 = 8388607.5;
 pub const INT_16_ADD_FOR_FLOAT_ABS:f32 = 32768.0;
 pub const INT_16_DIVIDE_FOR_FLOAT:f32 = 32767.5;
 
+pub const INT_8_ADD_FOR_FLOAT_ABS:f32 = 128.0;
+pub const INT_8_DIVIDE_FOR_FLOAT:f32 = 127.5;
+
 pub fn i24_to_f32(sample_int_24: i32) -> Result<f32> {
     assert_int_24(sample_int_24)?;
 
@@ -20,6 +23,12 @@ pub fn i16_to_f32(sample_int_16: i16) -> Result<f32> {
     let sample_int_16_as_float = sample_int_16 as f32;
     let sample_int_16_abs = sample_int_16_as_float + INT_16_ADD_FOR_FLOAT_ABS;
     Ok((sample_int_16_abs / INT_16_DIVIDE_FOR_FLOAT) - 1.0)
+}
+
+pub fn i8_to_f32(sample_int_8: i8) -> Result<f32> {
+    let sample_int_8_as_float = sample_int_8 as f32;
+    let sample_int_8_abs = sample_int_8_as_float + INT_8_ADD_FOR_FLOAT_ABS;
+    Ok((sample_int_8_abs / INT_8_DIVIDE_FOR_FLOAT) - 1.0)
 }
 
 #[cfg(test)]
@@ -53,6 +62,19 @@ mod tests {
     #[test_case(-1, -1.5258789e-5; "int_16_smallest_negative")]
     fn i16_to_f32_test(sample_int_16: i16, expected_sample_float: f32) {
         let actual_sample_float = i16_to_f32(sample_int_16).expect("Error converting sample to float");
+        assert_eq!(actual_sample_float, expected_sample_float);
+    }
+
+    #[test_case(i8::MAX, 1.0; "int_8_max")]
+    #[test_case(i8::MIN, -1.0; "int_8_min")]
+    #[test_case(i8::MAX / 2, 0.49803925; "int_8_half")]
+    #[test_case((i8::MIN / 2) - 1, -0.5058824; "int_8_half_negative")]
+    #[test_case(i8::MAX / 4, 0.24705887; "int_8_quarter")]
+    #[test_case((i8::MIN / 4) - 1, -0.25490195; "int_8_quarter_negative")]
+    #[test_case(0, 0.003921628; "int_8_smallest_positive")]
+    #[test_case(-1, -0.0039215684; "int_8_smallest_negative")]
+    fn i8_to_f32_test(sample_int_8: i8, expected_sample_float: f32) {
+        let actual_sample_float = i8_to_f32(sample_int_8).expect("Error converting sample to float");
         assert_eq!(actual_sample_float, expected_sample_float);
     }
 }

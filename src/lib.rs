@@ -135,6 +135,16 @@ mod tests {
     }
 
     #[test]
+    fn read_random_i8_as_f32() {
+        read_random(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            0.9843137,
+            1.0,
+            0.9607843).unwrap();
+    }
+
+    #[test]
     fn read_random_i16_as_f32() {
         read_random(
             Path::new("test_data/short_16.wav"),
@@ -201,13 +211,6 @@ mod tests {
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_8.wav")).unwrap();
-        let stream_float_result = open_wav.get_stream_f32_reader();
-        match stream_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
     }
 
     #[test]
@@ -221,6 +224,16 @@ mod tests {
     }
 
     #[test]
+    fn read_stream_i8_as_f32() {
+        read_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            0.9843137,
+            1.0,
+            0.9607843).unwrap();
+    }
+
+    #[test]
     fn read_stream_i16() {
         read_stream(
             Path::new("test_data/short_16.wav"),
@@ -231,16 +244,6 @@ mod tests {
     }
 
     #[test]
-    fn read_stream_i24() {
-        read_stream(
-            Path::new("test_data/short_24.wav"),
-            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
-    }
-
-    #[test]
     fn read_stream_i16_as_f32() {
         read_stream(
             Path::new("test_data/short_16.wav"),
@@ -248,6 +251,16 @@ mod tests {
             -0.020462334,
             -0.015823603,
             -0.010849178).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i24() {
+        read_stream(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
     }
 
     #[test]
