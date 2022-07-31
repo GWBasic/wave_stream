@@ -141,6 +141,16 @@ mod tests {
     }
 
     #[test]
+    fn read_random_i24_as_f32() {
+        read_random(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            0.00773263,
+            0.0077506304,
+            0.0077701807).unwrap();
+    }
+
+    #[test]
     fn read_random_f32() {
         read_random(
             Path::new("test_data/short_float.wav"),
@@ -231,6 +241,16 @@ mod tests {
             i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
             i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
             i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i24_as_f32() {
+        read_stream(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            0.00773263,
+            0.0077506304,
+            0.0077701807).unwrap();
     }
 
     #[test]
@@ -349,6 +369,11 @@ mod tests {
     }
 
     #[test]
+    fn write_random_i24_as_f32() {
+        panic!("Incomplete");
+    }
+
+    #[test]
     fn write_random_f32() {
         write_random(
             SampleFormat::Float,
@@ -423,6 +448,11 @@ mod tests {
             Box::new(|open_wav| open_wav.get_stream_i24_reader()),
             Box::new(|open_wav, read_samples_iter| open_wav.write_all_i24(read_samples_iter)),
             Box::new(|open_wav| open_wav.get_random_access_i24_reader()))
+    }
+
+    #[test]
+    fn write_stream_i24_as_f32() {
+        panic!("Incomplete");
     }
 
     #[test]
