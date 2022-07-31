@@ -1,6 +1,7 @@
 use std::io::{ Write, Result };
 
 use crate::assertions::assert_int_24;
+use crate::upconvert::int_24_to_float;
 
 pub trait WriteEx : Write {
     fn write_str(&mut self, s: &str) -> Result<()>;
@@ -11,6 +12,7 @@ pub trait WriteEx : Write {
     fn write_f32(&mut self, v: f32) -> Result<()>;
     fn write_i8(&mut self, v: i8) -> Result<()>;
     fn write_i24(&mut self, v: i32) -> Result<()>;
+    fn write_i24_as_f32(&mut self, v: i32) -> Result<()>;
 }
 
 impl<T> WriteEx for T where T: Write {
@@ -72,5 +74,10 @@ impl<T> WriteEx for T where T: Write {
         self.write(&bytes)?;
 
         Ok(())
+    }
+
+    fn write_i24_as_f32(&mut self, v: i32) -> Result<()> {
+        let sample_float = int_24_to_float(v)?;
+        return self.write_f32(sample_float);
     }
 }

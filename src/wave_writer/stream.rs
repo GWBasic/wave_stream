@@ -48,6 +48,11 @@ impl OpenWavWriter {
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24(value)))
             },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24_as_f32(value)))
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
             }
