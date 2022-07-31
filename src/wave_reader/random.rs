@@ -63,7 +63,7 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavReader {
                     open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_float())
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_f32())
                 })
             },
             SampleFormat::Float => {

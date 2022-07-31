@@ -3,7 +3,7 @@ use std::io::{ Result };
 use crate::assertions::assert_int_24;
 use crate::constants::{ INT_24_ADD_FOR_FLOAT_ABS, INT_24_DIVIDE_FOR_FLOAT };
 
-pub fn int_24_to_float(sample_int_24: i32) -> Result<f32> {
+pub fn i24_to_f32(sample_int_24: i32) -> Result<f32> {
     assert_int_24(sample_int_24)?;
 
     let sample_int_24_as_float = sample_int_24 as f32;
@@ -28,8 +28,8 @@ mod tests {
     #[test_case((MIN_INT_24 / 4) - 1, -0.25000006; "int_24_quarter_negative")]
     #[test_case(0, 1.1920929e-7; "int_24_smallest_positive")]
     #[test_case(-1, -5.9604645e-8; "int_24_smallest_negative")]
-    fn int_24_to_float_test(sample_int_24: i32, expected_sample_float: f32) {
-        let actual_sample_float = int_24_to_float(sample_int_24).expect("Error converting sample to float");
+    fn i24_to_f32_test(sample_int_24: i32, expected_sample_float: f32) {
+        let actual_sample_float = i24_to_f32(sample_int_24).expect("Error converting sample to float");
         assert_eq!(actual_sample_float, expected_sample_float);
     }
 }
