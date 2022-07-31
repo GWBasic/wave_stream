@@ -66,7 +66,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::upconvert::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT };
+    use crate::upconvert::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT, INT_8_ADD_FOR_FLOAT_ABS, INT_8_DIVIDE_FOR_FLOAT };
     use crate::open_wav::OpenWav;
 
     #[test]
@@ -372,6 +372,20 @@ mod tests {
     }
 
     #[test]
+    fn write_random_i8_as_f32() {
+        write_random(
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| {
+                let sample_int_8_abs = (sample_value + 1.0) * INT_8_DIVIDE_FOR_FLOAT;
+                let sample_int_8_as_float = sample_int_8_abs - INT_8_ADD_FOR_FLOAT_ABS;
+                return sample_int_8_as_float as i8;
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
+            Box::new(|sample_value| sample_value as i8));
+    }
+
+    #[test]
     fn write_random_i16() {
         write_random(
             SampleFormat::Int16,
@@ -474,6 +488,16 @@ mod tests {
             Box::new(|open_wav| open_wav.get_stream_i8_reader()),
             Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
             Box::new(|open_wav| open_wav.get_random_access_i8_reader()))
+    }
+
+    #[test]
+    fn write_stream_i8_as_f32() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
     }
 
     #[test]

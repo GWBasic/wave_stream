@@ -15,6 +15,12 @@ impl OpenWavWriter {
                     write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value))
                 })
             },
+            SampleFormat::Float => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_f32(value))
+                })
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
             }

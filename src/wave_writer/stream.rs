@@ -16,6 +16,11 @@ impl OpenWavWriter {
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value)))
             },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_f32(value)))
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
             }
