@@ -32,6 +32,12 @@ impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
 
     fn get_stream_i24_reader(self) -> Result<StreamWavReader<i32>> {
         match self.header.sample_format {
+            SampleFormat::Int16 => {
+                Ok(StreamWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16_as_i24())
+                })
+            },
             SampleFormat::Int24 => {
                 Ok(StreamWavReader {
                     open_wav: Box::new(self),

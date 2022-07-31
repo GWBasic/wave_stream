@@ -35,6 +35,12 @@ impl OpenWavWriter {
                     write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value))
                 })
             },
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16_as_i24(value))
+                })
+            },
             SampleFormat::Float => {
                 Ok(RandomAccessWavWriter {
                     open_wav: self,

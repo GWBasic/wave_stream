@@ -115,26 +115,6 @@ mod tests {
     }
 
     #[test]
-    fn read_random_i16() {
-        read_random(
-            Path::new("test_data/short_16.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
-            i16::from_le_bytes([0x61, 0xFD]),
-            i16::from_le_bytes([0xF9, 0xFD]),
-            i16::from_le_bytes([0x9C, 0xFE])).unwrap();
-    }
-
-    #[test]
-    fn read_random_i24() {
-        read_random(
-            Path::new("test_data/short_24.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
-    }
-
-    #[test]
     fn read_random_i8_as_f32() {
         read_random(
             Path::new("test_data/short_8.wav"),
@@ -145,6 +125,26 @@ mod tests {
     }
 
     #[test]
+    fn read_random_i16() {
+        read_random(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            i16::from_le_bytes([0x61, 0xFD]),
+            i16::from_le_bytes([0xF9, 0xFD]),
+            i16::from_le_bytes([0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
+    fn read_random_i16_as_i24() {
+        read_random(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            -171776,
+            -132864,
+            -91136).unwrap();
+    }
+
+    #[test]
     fn read_random_i16_as_f32() {
         read_random(
             Path::new("test_data/short_16.wav"),
@@ -152,6 +152,16 @@ mod tests {
             -0.020462334,
             -0.015823603,
             -0.010849178).unwrap();
+    }
+
+    #[test]
+    fn read_random_i24() {
+        read_random(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
+            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
     }
 
     #[test]
@@ -241,6 +251,16 @@ mod tests {
             i16::from_le_bytes([0x61, 0xFD]),
             i16::from_le_bytes([0xF9, 0xFD]),
             i16::from_le_bytes([0x9C, 0xFE])).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i16_as_i24() {
+        read_stream(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            -171776,
+            -132864,
+            -91136).unwrap();
     }
 
     #[test]
@@ -396,6 +416,22 @@ mod tests {
     }
 
     #[test]
+    fn write_random_i16_as_i24() {
+        write_random(
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            Box::new(|sample_value| {
+                if sample_value > 0 {
+                    return (((sample_value + 1) / 256) - 1) as i16;
+                } else { // sample_value < 0 {
+                    return (sample_value / 256) as i16;
+                }
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i16_writer()),
+            Box::new(|sample_value| sample_value as i16));
+    }
+
+    #[test]
     fn write_random_i16_as_f32() {
         write_random(
             SampleFormat::Float,
@@ -467,8 +503,8 @@ mod tests {
 
             for sample in 0..100 {
                 for channel in 0..reader.info().channels() {
-                    let value = reader.read_sample(sample, channel)?;
                     let sample_value = (sample as i32) * 10 + (channel as i32);
+                    let value = reader.read_sample(sample, channel)?;
                     assert_eq!(
                         convert_sample_to_write(sample_value),
                         convert_sample_to_read(value),
@@ -508,6 +544,16 @@ mod tests {
             Box::new(|open_wav| open_wav.get_stream_i16_reader()),
             Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
             Box::new(|open_wav| open_wav.get_random_access_i16_reader()))
+    }
+
+    #[test]
+    fn write_stream_i16_as_i24() {
+        write_stream(
+            Path::new("test_data/short_16.wav"),
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()))
     }
 
     #[test]
