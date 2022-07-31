@@ -69,19 +69,12 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
         })
     }
 
+    // TODO: Delete this
     fn assert_int_8(&self) -> Result<()> {
         if self.header.sample_format == SampleFormat::Int8 {
             Ok(())
         } else {
             Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
-        }
-    }
-
-    fn assert_float(&self) -> Result<()> {
-        if self.header.sample_format == SampleFormat::Float {
-            Ok(())
-        } else {
-            Err(Error::new(ErrorKind::InvalidData, "Converting to float unsupported"))
         }
     }
 }

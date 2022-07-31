@@ -59,12 +59,21 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
     }
 
     fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>> {
-        self.assert_float()?;
-
-        Ok(RandomAccessWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
-        })
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_float())
+                })
+            },
+            SampleFormat::Float => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
+                })
+                    },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
     }
 }
 

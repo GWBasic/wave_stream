@@ -43,12 +43,21 @@ impl<TReader: 'static + Read> StreamOpenWavReader for OpenWavReader<TReader> {
     }
 
     fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>> {
-        self.assert_float()?;
-
-        Ok(StreamWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
-        })
+        match self.header.sample_format {
+            SampleFormat::Int24 => {
+                Ok(StreamWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_float())
+                })
+            },
+            SampleFormat::Float => {
+                Ok(StreamWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
+                })
+                    },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+        }
     }
 }
 

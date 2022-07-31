@@ -1,6 +1,8 @@
 use std::io::{ Error, ErrorKind, Read, Result };
 use std::str;
 
+use crate::upconvert::int_24_to_float;
+
 pub trait ReadEx : Read {
     fn skip(&mut self, length: usize) -> Result<()>;
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()>;
@@ -12,6 +14,7 @@ pub trait ReadEx : Read {
     fn read_f32(&mut self) -> Result<f32>;
     fn read_i8(&mut self) -> Result<i8>;
     fn read_i24(&mut self) -> Result<i32>;
+    fn read_i24_as_float(&mut self) -> Result<f32>;
 }
 
 impl<T> ReadEx for T where T: Read {
@@ -97,5 +100,10 @@ impl<T> ReadEx for T where T: Read {
 
         let buf = [buf[0], buf[1], buf[2], 0];
         Ok(i32::from_le_bytes(buf) >> 8)
+    }
+
+    fn read_i24_as_float(&mut self) -> Result<f32> {
+        let sample_int_24 = self.read_i24()?;
+        return int_24_to_float(sample_int_24);
     }
 }

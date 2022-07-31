@@ -9,6 +9,10 @@ pub mod wave_reader;
 pub mod wave_writer;
 pub mod writer;
 
+mod assertions;
+mod constants;
+mod upconvert;
+
 use reader::ReadEx;
 use wave_header::*;
 use wave_reader::*;
@@ -98,13 +102,6 @@ mod tests {
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
 
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
-        let read_float_result = open_wav.get_random_access_float_reader();
-        match read_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
-
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         let read_float_result = open_wav.get_random_access_float_reader();
         match read_float_result {
@@ -190,13 +187,6 @@ mod tests {
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
-        let stream_float_result = open_wav.get_stream_float_reader();
-        match stream_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
 
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         let stream_float_result = open_wav.get_stream_float_reader();
