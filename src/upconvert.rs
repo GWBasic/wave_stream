@@ -1,7 +1,12 @@
 use std::io::{ Result };
 
 use crate::assertions::assert_int_24;
-use crate::constants::{ INT_16_ADD_FOR_FLOAT_ABS, INT_16_DIVIDE_FOR_FLOAT, INT_24_ADD_FOR_FLOAT_ABS, INT_24_DIVIDE_FOR_FLOAT };
+
+pub const INT_24_ADD_FOR_FLOAT_ABS:f32 = 8388608.0;
+pub const INT_24_DIVIDE_FOR_FLOAT:f32 = 8388607.5;
+
+pub const INT_16_ADD_FOR_FLOAT_ABS:f32 = 32768.0;
+pub const INT_16_DIVIDE_FOR_FLOAT:f32 = 32767.5;
 
 pub fn i24_to_f32(sample_int_24: i32) -> Result<f32> {
     assert_int_24(sample_int_24)?;

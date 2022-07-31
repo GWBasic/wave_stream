@@ -66,7 +66,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::constants::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT };
+    use crate::upconvert::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT };
     use crate::open_wav::OpenWav;
 
     #[test]
