@@ -31,7 +31,12 @@ impl OpenWavWriter {
                 self.write_all(
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value)))
-                    },
+            },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16_as_f32(value)))
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
             }

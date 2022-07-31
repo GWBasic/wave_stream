@@ -66,7 +66,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::constants::INT_24_DIVIDE_FOR_FLOAT;
+    use crate::constants::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT };
     use crate::open_wav::OpenWav;
 
     #[test]
@@ -369,6 +369,16 @@ mod tests {
     }
 
     #[test]
+    fn write_random_i16_as_f32() {
+        write_random(
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| (sample_value * INT_16_DIVIDE_FOR_FLOAT) as i16),
+            Box::new(|open_wav| open_wav.get_random_access_i16_writer()),
+            Box::new(|sample_value| sample_value as i16));
+    }
+
+    #[test]
     fn write_random_i24() {
         write_random(
             SampleFormat::Int24,
@@ -461,6 +471,16 @@ mod tests {
             Box::new(|open_wav| open_wav.get_stream_i16_reader()),
             Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
             Box::new(|open_wav| open_wav.get_random_access_i16_reader()))
+    }
+
+    #[test]
+    fn write_stream_i16_as_f32() {
+        write_stream(
+            Path::new("test_data/short_16.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
     }
 
     #[test]

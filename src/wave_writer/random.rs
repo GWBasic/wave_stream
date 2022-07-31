@@ -29,6 +29,12 @@ impl OpenWavWriter {
                     write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value))
                 })
             },
+            SampleFormat::Float => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16_as_f32(value))
+                })
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
             }
