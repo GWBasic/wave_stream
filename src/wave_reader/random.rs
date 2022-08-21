@@ -48,6 +48,12 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
 
     fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>> {
         match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i24())
+                })
+            },
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavReader {
                     open_wav: Box::new(self),

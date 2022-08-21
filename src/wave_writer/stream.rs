@@ -16,6 +16,11 @@ impl OpenWavWriter {
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value)))
             },
+            SampleFormat::Int24 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_i24(value)))
+            },
             SampleFormat::Float => {
                 self.write_all(
                     samples_itr,
