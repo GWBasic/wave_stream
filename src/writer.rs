@@ -80,7 +80,7 @@ impl<T> WriteEx for T where T: Write {
 
         let bytes = (v << 8).to_le_bytes();
 
-        let bytes = [bytes[0], bytes[1], bytes[2]];
+        let bytes = [bytes[1], bytes[2], bytes[3]];
         self.write(&bytes)?;
 
         Ok(())
