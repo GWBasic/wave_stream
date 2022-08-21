@@ -159,9 +159,9 @@ mod tests {
         read_random(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE]) >> 8).unwrap();
     }
 
     #[test]
@@ -169,9 +169,9 @@ mod tests {
         read_random(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
-            0.00773263,
-            0.0077506304,
-            0.0077701807).unwrap();
+            -0.020471752,
+            -0.015841544,
+            -0.010846555).unwrap();
     }
 
     #[test]
@@ -278,9 +278,9 @@ mod tests {
         read_stream(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_stream_i24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE]) >> 8).unwrap();
     }
 
     #[test]
@@ -288,9 +288,9 @@ mod tests {
         read_stream(
             Path::new("test_data/short_24.wav"),
             Box::new(|open_wav| open_wav.get_stream_f32_reader()),
-            0.00773263,
-            0.0077506304,
-            0.0077701807).unwrap();
+            -0.020471752,
+            -0.015841544,
+            -0.010846555).unwrap();
     }
 
     #[test]
@@ -419,6 +419,7 @@ mod tests {
     fn write_random_i16_as_i24() {
         write_random(
             SampleFormat::Int24,
+            // Wav is upconverted from 16-bit to 24-bit on read
             Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
             Box::new(|sample_value| {
                 if sample_value > 0 {
@@ -501,7 +502,7 @@ mod tests {
 
             let mut reader = get_random_access_reader(open_wav)?;
 
-            for sample in 0..100 {
+            for sample in 0..100u32 {
                 for channel in 0..reader.info().channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
                     let value = reader.read_sample(sample, channel)?;
