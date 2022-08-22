@@ -1,6 +1,8 @@
 use std::io::{ Error, ErrorKind, Read, Result };
 use std::str;
 
+use crate::upconvert::{ i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24 };
+
 pub trait ReadEx : Read {
     fn skip(&mut self, length: usize) -> Result<()>;
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()>;
@@ -8,10 +10,16 @@ pub trait ReadEx : Read {
     fn assert_str(&mut self, expected: &str, error_kind: ErrorKind, message: &str) -> Result<()>;
     fn read_u32(&mut self) -> Result<u32>;
     fn read_i16(&mut self) -> Result<i16>;
+    fn read_i16_as_i24(&mut self) -> Result<i32>;
+    fn read_i8_as_i24(&mut self) -> Result<i32>;
+    fn read_i8_as_i16(&mut self) -> Result<i16>;
     fn read_u16(&mut self) -> Result<u16>;
     fn read_f32(&mut self) -> Result<f32>;
     fn read_i8(&mut self) -> Result<i8>;
     fn read_i24(&mut self) -> Result<i32>;
+    fn read_i24_as_f32(&mut self) -> Result<f32>;
+    fn read_i16_as_f32(&mut self) -> Result<f32>;
+    fn read_i8_as_f32(&mut self) -> Result<f32>;
 }
 
 impl<T> ReadEx for T where T: Read {
@@ -70,6 +78,21 @@ impl<T> ReadEx for T where T: Read {
         Ok(i16::from_le_bytes(buf))
     }
 
+    fn read_i16_as_i24(&mut self) -> Result<i32> {
+        let sample_i16 = self.read_i16()?;
+        Ok(i16_to_i24(sample_i16)?)
+    }
+
+    fn read_i8_as_i24(&mut self) -> Result<i32> {
+        let sample_i8 = self.read_i8()?;
+        Ok(i8_to_i24(sample_i8)?)
+    }
+
+    fn read_i8_as_i16(&mut self) -> Result<i16> {
+        let sample_i8 = self.read_i8()?;
+        Ok(i8_to_i16(sample_i8)?)
+    }
+
     fn read_u16(&mut self) -> Result<u16> {
         let mut buf = [0u8; 2];
         self.read_fixed_size(&mut buf[..])?;
@@ -95,7 +118,22 @@ impl<T> ReadEx for T where T: Read {
         let mut buf = [0u8; 3];
         self.read_fixed_size(&mut buf[..])?;
 
-        let buf = [buf[0], buf[1], buf[2], 0];
+        let buf = [0, buf[0], buf[1], buf[2]];
         Ok(i32::from_le_bytes(buf) >> 8)
+    }
+
+    fn read_i24_as_f32(&mut self) -> Result<f32> {
+        let sample_int_24 = self.read_i24()?;
+        return i24_to_f32(sample_int_24);
+    }
+
+    fn read_i16_as_f32(&mut self) -> Result<f32> {
+        let sample_int_16 = self.read_i16()?;
+        return i16_to_f32(sample_int_16);
+    }
+
+    fn read_i8_as_f32(&mut self) -> Result<f32> {
+        let sample_int_8 = self.read_i8()?;
+        return i8_to_f32(sample_int_8);
     }
 }

@@ -9,6 +9,10 @@ pub mod wave_reader;
 pub mod wave_writer;
 pub mod writer;
 
+mod assertions;
+mod constants;
+mod upconvert;
+
 use reader::ReadEx;
 use wave_header::*;
 use wave_reader::*;
@@ -62,6 +66,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+    use crate::upconvert::{ INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT, INT_8_ADD_FOR_FLOAT_ABS, INT_8_DIVIDE_FOR_FLOAT };
     use crate::open_wav::OpenWav;
 
     #[test]
@@ -91,63 +96,109 @@ mod tests {
     #[test]
     fn read_float_sanity() {
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
-        let wave_reader_float = open_wav.get_random_access_float_reader().unwrap();
+        let wave_reader_float = open_wav.get_random_access_f32_reader().unwrap();
         assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
         assert_eq!(1, wave_reader_float.info().channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
-        let read_float_result = open_wav.get_random_access_float_reader();
-        match read_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
-        let read_float_result = open_wav.get_random_access_float_reader();
-        match read_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
     }
 
     #[test]
-    fn read_random_int_8() {
+    fn read_random_i8() {
         read_random(
             Path::new("test_data/short_8.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_int_8_reader()),
+            Box::new(|open_wav| open_wav.get_random_access_i8_reader()),
             i8::from_le_bytes([0x7D]),
             i8::from_le_bytes([0x7F]),
             i8::from_le_bytes([0x7A])).unwrap();
     }
+    
+    #[test]
+    fn read_random_i8_as_i16() {
+        read_random(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            32255,
+            32767,
+            31487).unwrap();
+    }
 
     #[test]
-    fn read_random_int_16() {
+    fn read_random_i8_as_i24() {
+        read_random(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            8257535,
+            8388607,
+            8060927).unwrap();
+    }
+
+    #[test]
+    fn read_random_i8_as_f32() {
+        read_random(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            0.9843137,
+            1.0,
+            0.9607843).unwrap();
+    }
+
+    #[test]
+    fn read_random_i16() {
         read_random(
             Path::new("test_data/short_16.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_int_16_reader()),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
             i16::from_le_bytes([0x61, 0xFD]),
             i16::from_le_bytes([0xF9, 0xFD]),
             i16::from_le_bytes([0x9C, 0xFE])).unwrap();
     }
 
     #[test]
-    fn read_random_int_24() {
+    fn read_random_i16_as_i24() {
         read_random(
-            Path::new("test_data/short_24.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_int_24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            -171776,
+            -132864,
+            -91136).unwrap();
     }
 
     #[test]
-    fn read_random_float() {
+    fn read_random_i16_as_f32() {
+        read_random(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            -0.020462334,
+            -0.015823603,
+            -0.010849178).unwrap();
+    }
+
+    #[test]
+    fn read_random_i24() {
+        read_random(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE]) >> 8).unwrap();
+    }
+
+    #[test]
+    fn read_random_i24_as_f32() {
+        read_random(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            -0.020471752,
+            -0.015841544,
+            -0.010846555).unwrap();
+    }
+
+    #[test]
+    fn read_random_f32() {
         read_random(
             Path::new("test_data/short_float.wav"),
-            Box::new(|open_wav| open_wav.get_random_access_float_reader()),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
             f32::from_le_bytes([0x6D, 0xB4, 0xA7, 0xBC]),
             f32::from_le_bytes([0x02, 0xC6, 0x81, 0xBC]),
             f32::from_le_bytes([0xA0, 0xB5, 0x31, 0xBC])).unwrap();
@@ -177,77 +228,116 @@ mod tests {
     }
 
     #[test]
-    fn read_stream_float_sanity() {
+    fn read_stream_f32_sanity() {
 
         let file = File::open(Path::new("test_data/short_float.wav")).unwrap();
         let reader = BufReader::new(file)
             .take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
     
         let open_wav = read_wav(reader).unwrap();
-        let wave_reader_float = open_wav.get_stream_float_reader().unwrap();
+        let wave_reader_float = open_wav.get_stream_f32_reader().unwrap();
         assert_eq!(SampleFormat::Float, wave_reader_float.info().sample_format());
         assert_eq!(1, wave_reader_float.info().channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
-        let stream_float_result = open_wav.get_stream_float_reader();
-        match stream_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
-        let stream_float_result = open_wav.get_stream_float_reader();
-        match stream_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
-
-        let open_wav = read_wav_from_file_path(Path::new("test_data/short_8.wav")).unwrap();
-        let stream_float_result = open_wav.get_stream_float_reader();
-        match stream_float_result {
-            Result::Err(_) => {},
-            _ => panic!("Should not be able to read file")
-        }
     }
 
     #[test]
-    fn read_stream_int_8() {
+    fn read_stream_i8() {
         read_stream(
             Path::new("test_data/short_8.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_8_reader()),
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
             i8::from_le_bytes([0x7D]),
             i8::from_le_bytes([0x7F]),
             i8::from_le_bytes([0x7A])).unwrap();
     }
+    
+    #[test]
+    fn read_stream_i8_as_i16() {
+        read_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            32255,
+            32767,
+            31487).unwrap();
+    }
 
     #[test]
-    fn read_stream_int_16() {
+    fn read_stream_i8_as_i24() {
+        read_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            8257535,
+            8388607,
+            8060927).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i8_as_f32() {
+        read_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            0.9843137,
+            1.0,
+            0.9607843).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i16() {
         read_stream(
             Path::new("test_data/short_16.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_16_reader()),
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
             i16::from_le_bytes([0x61, 0xFD]),
             i16::from_le_bytes([0xF9, 0xFD]),
             i16::from_le_bytes([0x9C, 0xFE])).unwrap();
     }
 
     #[test]
-    fn read_stream_int_24() {
+    fn read_stream_i16_as_i24() {
         read_stream(
-            Path::new("test_data/short_24.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_24_reader()),
-            i32::from_le_bytes([0x2E, 0x61, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0xE7, 0xF8, 0xFD, 0x00]) >> 8,
-            i32::from_le_bytes([0x94, 0x9C, 0xFE, 0x00]) >> 8).unwrap();
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            -171776,
+            -132864,
+            -91136).unwrap();
     }
 
     #[test]
-    fn read_stream_float() {
+    fn read_stream_i16_as_f32() {
+        read_stream(
+            Path::new("test_data/short_16.wav"),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            -0.020462334,
+            -0.015823603,
+            -0.010849178).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i24() {
+        read_stream(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            i32::from_le_bytes([0x00, 0x2E, 0x61, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0xE7, 0xF8, 0xFD]) >> 8,
+            i32::from_le_bytes([0x00, 0x94, 0x9C, 0xFE]) >> 8).unwrap();
+    }
+
+    #[test]
+    fn read_stream_i24_as_f32() {
+        read_stream(
+            Path::new("test_data/short_24.wav"),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            -0.020471752,
+            -0.015841544,
+            -0.010846555).unwrap();
+    }
+
+    #[test]
+    fn read_stream_f32() {
         read_stream(
             Path::new("test_data/short_float.wav"),
-            Box::new(|open_wav| open_wav.get_stream_float_reader()),
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
             f32::from_le_bytes([0x6D, 0xB4, 0xA7, 0xBC]),
             f32::from_le_bytes([0x02, 0xC6, 0x81, 0xBC]),
             f32::from_le_bytes([0xA0, 0xB5, 0x31, 0xBC])).unwrap();
@@ -332,46 +422,137 @@ mod tests {
     }
 
     #[test]
-    fn write_random_int_8() {
+    fn write_random_i8() {
         write_random(
             SampleFormat::Int8,
-            Box::new(|open_wav| open_wav.get_random_access_int_8_reader()),
-            Box::new(|open_wav| open_wav.get_random_access_int_8_writer()),
+            Box::new(|open_wav| open_wav.get_random_access_i8_reader()),
+            Box::new(|sample_value| sample_value),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
+            Box::new(|sample_value| sample_value as i8));
+    }
+    
+    #[test]
+    fn write_random_i8_as_i16() {
+        write_random(
+            SampleFormat::Int16,
+            // Wav is upconverted from 8-bit to 16-bit on read
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            Box::new(|sample_value| {
+                let sample_value = sample_value as i32; 
+                if sample_value > 0 {
+                    return (((sample_value + 1) / 256) - 1) as i8;
+                } else { // sample_value < 0 {
+                    return (sample_value / 256) as i8;
+                }
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
             Box::new(|sample_value| sample_value as i8));
     }
 
     #[test]
-    fn write_random_int_16() {
+    fn write_random_i8_as_i24() {
+        write_random(
+            SampleFormat::Int24,
+            // Wav is upconverted from 8-bit to 24-bit on read
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            Box::new(|sample_value| {
+                if sample_value > 0 {
+                    return (((sample_value + 1) / 65536) - 1) as i8;
+                } else { // sample_value < 0 {
+                    return (sample_value / 65536) as i8;
+                }
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
+            Box::new(|sample_value| sample_value as i8));
+    }
+
+    #[test]
+    fn write_random_i8_as_f32() {
+        write_random(
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| {
+                let sample_int_8_abs = (sample_value + 1.0) * INT_8_DIVIDE_FOR_FLOAT;
+                let sample_int_8_as_float = sample_int_8_abs - INT_8_ADD_FOR_FLOAT_ABS;
+                return sample_int_8_as_float as i8;
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
+            Box::new(|sample_value| sample_value as i8));
+    }
+
+    #[test]
+    fn write_random_i16() {
         write_random(
             SampleFormat::Int16,
-            Box::new(|open_wav| open_wav.get_random_access_int_16_reader()),
-            Box::new(|open_wav| open_wav.get_random_access_int_16_writer()),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            Box::new(|sample_value| sample_value),
+            Box::new(|open_wav| open_wav.get_random_access_i16_writer()),
             Box::new(|sample_value| sample_value as i16));
     }
 
     #[test]
-    fn write_random_int_24() {
+    fn write_random_i16_as_i24() {
         write_random(
             SampleFormat::Int24,
-            Box::new(|open_wav| open_wav.get_random_access_int_24_reader()),
-            Box::new(|open_wav| open_wav.get_random_access_int_24_writer()),
+            // Wav is upconverted from 16-bit to 24-bit on read
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            Box::new(|sample_value| {
+                if sample_value > 0 {
+                    return (((sample_value + 1) / 256) - 1) as i16;
+                } else { // sample_value < 0 {
+                    return (sample_value / 256) as i16;
+                }
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i16_writer()),
+            Box::new(|sample_value| sample_value as i16));
+    }
+
+    #[test]
+    fn write_random_i16_as_f32() {
+        write_random(
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| (sample_value * INT_16_DIVIDE_FOR_FLOAT) as i16),
+            Box::new(|open_wav| open_wav.get_random_access_i16_writer()),
+            Box::new(|sample_value| sample_value as i16));
+    }
+
+    #[test]
+    fn write_random_i24() {
+        write_random(
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()),
+            Box::new(|sample_value| sample_value),
+            Box::new(|open_wav| open_wav.get_random_access_i24_writer()),
             Box::new(|sample_value| sample_value as i32));
     }
 
     #[test]
-    fn write_random_float() {
+    fn write_random_i24_as_f32() {
         write_random(
             SampleFormat::Float,
-            Box::new(|open_wav| open_wav.get_random_access_float_reader()),
-            Box::new(|open_wav| open_wav.get_random_access_float_writer()),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| (sample_value * INT_24_DIVIDE_FOR_FLOAT - 0.5) as i32),
+            Box::new(|open_wav| open_wav.get_random_access_i24_writer()),
+            Box::new(|sample_value| sample_value as i32));
+    }
+
+    #[test]
+    fn write_random_f32() {
+        write_random(
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()),
+            Box::new(|sample_value| sample_value),
+            Box::new(|open_wav| open_wav.get_random_access_f32_writer()),
             Box::new(|sample_value| sample_value as f32));
     }
 
-    fn write_random<T: Debug + PartialEq + 'static>(
+    fn write_random<T: Debug + PartialEq + 'static, TFile: Debug + PartialEq + 'static>(
         sample_format: SampleFormat,
-        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>,
+        get_random_access_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<TFile>>>,
+        convert_sample_to_read: Box<dyn Fn(TFile) -> T>,
         get_random_access_writer: Box<dyn FnOnce(OpenWavWriter) -> Result<RandomAccessWavWriter<T>>>,
-        convert_sample: Box<dyn Fn(i32) -> T>) {
+        convert_sample_to_write: Box<dyn Fn(i32) -> T>) {
             
         test_with_file(Box::new(move |path| {
             let header = WavHeader {
@@ -385,7 +566,7 @@ mod tests {
             for sample in 0..100u32 {
                 for channel in 0..writer.info().channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
-                    writer.write_sample(sample, channel, convert_sample(sample_value))?;
+                    writer.write_sample(sample, channel, convert_sample_to_write(sample_value))?;
                 }
             }
 
@@ -396,11 +577,14 @@ mod tests {
 
             let mut reader = get_random_access_reader(open_wav)?;
 
-            for sample in 0..100 {
+            for sample in 0..100u32 {
                 for channel in 0..reader.info().channels() {
-                    let value = reader.read_sample(sample, channel)?;
                     let sample_value = (sample as i32) * 10 + (channel as i32);
-                    assert_eq!(convert_sample(sample_value), value, "Wrong sample read at {sample}, channel {channel}");
+                    let value = reader.read_sample(sample, channel)?;
+                    assert_eq!(
+                        convert_sample_to_write(sample_value),
+                        convert_sample_to_read(value),
+                        "Wrong sample read at {sample}, channel {channel}");
                 }
             }
 
@@ -409,55 +593,122 @@ mod tests {
     }
 
     #[test]
-    fn write_stream_int_8() {
+    fn write_stream_i8() {
         write_stream(
             Path::new("test_data/short_8.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_8_reader()),
-            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_8(read_samples_iter)),
-            Box::new(|open_wav| open_wav.get_random_access_int_8_reader()))
+            SampleFormat::Int8,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i8_reader()))
+    }
+    
+    #[test]
+    fn write_stream_i8_as_i16() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            SampleFormat::Int16,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()))
     }
 
     #[test]
-    fn write_stream_int_16() {
+    fn write_stream_i8_as_i24() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()))
+    }
+
+    #[test]
+    fn write_stream_i8_as_f32() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
+    }
+
+    #[test]
+    fn write_stream_i16() {
         write_stream(
             Path::new("test_data/short_16.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_16_reader()),
-            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_16(read_samples_iter)),
-            Box::new(|open_wav| open_wav.get_random_access_int_16_reader()))
+            SampleFormat::Int16,
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()))
     }
 
     #[test]
-    fn write_stream_int_24() {
+    fn write_stream_i16_as_i24() {
+        write_stream(
+            Path::new("test_data/short_16.wav"),
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()))
+    }
+
+    #[test]
+    fn write_stream_i16_as_f32() {
+        write_stream(
+            Path::new("test_data/short_16.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i16(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
+    }
+
+    #[test]
+    fn write_stream_i24() {
         write_stream(
             Path::new("test_data/short_24.wav"),
-            Box::new(|open_wav| open_wav.get_stream_int_24_reader()),
-            Box::new(|open_wav, read_samples_iter| open_wav.write_all_int_24(read_samples_iter)),
-            Box::new(|open_wav| open_wav.get_random_access_int_24_reader()))
+            SampleFormat::Int24,
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i24(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i24_reader()))
     }
 
     #[test]
-    fn write_stream_float() {
+    fn write_stream_i24_as_f32() {
         write_stream(
-            Path::new("test_data/short_float.wav"),
-            Box::new(|open_wav| open_wav.get_stream_float_reader()),
-            Box::new(|open_wav, read_samples_iter| open_wav.write_all_float(read_samples_iter)),
-            Box::new(|open_wav| open_wav.get_random_access_float_reader()))
+            Path::new("test_data/short_24.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_i24_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i24(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
     }
 
-    fn write_stream<T: Debug + PartialEq + Default + Clone + 'static>(
+    #[test]
+    fn write_stream_f32() {
+        write_stream(
+            Path::new("test_data/short_float.wav"),
+            SampleFormat::Float,
+            Box::new(|open_wav| open_wav.get_stream_f32_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_f32(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_f32_reader()))
+    }
+
+    // TODO: Is TFile needed
+
+    fn write_stream<T: Debug + PartialEq + Default + Clone + 'static, TFile: Debug + PartialEq + Default + Clone + 'static>(
         read_path: &Path,
+        sample_format: SampleFormat,
         get_stream_reader: Box<dyn FnOnce(OpenWavReader<BufReader<File>>) -> Result<StreamWavReader<T>>>,
         write_all: Box<dyn FnOnce(OpenWavWriter, StreamWavReaderIterator<T>) -> Result<()>>,
-        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<T>>>) {
+        get_random_access_reader: Box<dyn Fn(OpenWavReader<BufReader<File>>) -> Result<RandomAccessWavReader<TFile>>>) {
         
         let read_path_buf = read_path.to_path_buf();
         
         test_with_file(Box::new(move |path| {
             let read_path = read_path_buf.as_path();
             let source_wav = read_wav_from_file_path(read_path)?;
-    
+
             let header = WavHeader {
-                sample_format: source_wav.sample_format(),
+                sample_format,
                 channels: source_wav.channels(),
                 sample_rate: source_wav.sample_rate()
             };
@@ -480,9 +731,12 @@ mod tests {
 
             for sample_ctr in 0..len_samples {
                 for channel_ctr in 0..channels {
+                    let expected_sample = expected_wav_reader.read_sample(sample_ctr, channel_ctr)?;
+                    let actual_sample = actual_wav_reader.read_sample(sample_ctr, channel_ctr)?;
+
                     assert_eq!(
-                        expected_wav_reader.read_sample(sample_ctr, channel_ctr)?,
-                        actual_wav_reader.read_sample(sample_ctr, channel_ctr)?,
+                        expected_sample,
+                        actual_sample,
                         "Wrong value for sample");
                 }
             }

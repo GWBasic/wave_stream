@@ -6,7 +6,7 @@ use super::SampleFormat;
 use super::WriteEx;
 
 impl OpenWavWriter {
-    pub fn write_all_int_8<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i8<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i8>>>
     {
@@ -16,13 +16,25 @@ impl OpenWavWriter {
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8(value)))
             },
-            _ => {
-                Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit int unsupported"))
+            SampleFormat::Int16 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_i16(value)))
+            },
+            SampleFormat::Int24 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_i24(value)))
+            },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i8| writer.write_i8_as_f32(value)))
             }
         }
     }
 
-    pub fn write_all_int_16<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i16<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i16>>>
     {
@@ -31,14 +43,24 @@ impl OpenWavWriter {
                 self.write_all(
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16(value)))
-                    },
+            },
+            SampleFormat::Int24 => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16_as_i24(value)))
+            },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i16| writer.write_i16_as_f32(value)))
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit int unsupported"))
             }
         }
     }
 
-    pub fn write_all_int_24<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_i24<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<i32>>>
     {
@@ -48,13 +70,18 @@ impl OpenWavWriter {
                     samples_itr,
                     Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24(value)))
             },
+            SampleFormat::Float => {
+                self.write_all(
+                    samples_itr,
+                    Box::new(|mut writer: &mut dyn Write, value: i32| writer.write_i24_as_f32(value)))
+            },
             _ => {
                 Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit int unsupported"))
             }
         }
     }
 
-    pub fn write_all_float<TIterator>(self, samples_itr: TIterator) -> Result<()>
+    pub fn write_all_f32<TIterator>(self, samples_itr: TIterator) -> Result<()>
     where
         TIterator: Iterator<Item = Result<Vec<f32>>>
     {

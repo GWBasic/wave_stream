@@ -25,17 +25,26 @@ impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWav
 }
 
 impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader<TReader> {
-    fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>> {
-        self.assert_int_8()?;
-
-        Ok(RandomAccessWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
-        })
+    fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>> {
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
+        }
     }
 
-    fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>> {
+    fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>> {
         match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i16())
+                })
+            },
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavReader {
                     open_wav: Box::new(self),
@@ -46,8 +55,20 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
         }
     }
 
-    fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>> {
+    fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>> {
         match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i24())
+                })
+            },
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16_as_i24())
+                })
+            },
             SampleFormat::Int24 => {
                 Ok(RandomAccessWavReader {
                     open_wav: Box::new(self),
@@ -58,13 +79,33 @@ impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader
         }
     }
 
-    fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>> {
-        self.assert_float()?;
-
-        Ok(RandomAccessWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
-        })
+    fn get_random_access_f32_reader(self) -> Result<RandomAccessWavReader<f32>> {
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_f32())
+                })
+            },
+            SampleFormat::Int16 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16_as_f32())
+                })
+            },
+            SampleFormat::Int24 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_f32())
+                })
+            },
+            SampleFormat::Float => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
+                })
+            },
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use std::io::{ Error, ErrorKind, Read, Result };
+use std::io::{ Read, Result };
 
 use crate::open_wav::OpenWav;
 use crate::ReadEx;
@@ -68,22 +68,6 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
             data_start
         })
     }
-
-    fn assert_int_8(&self) -> Result<()> {
-        if self.header.sample_format == SampleFormat::Int8 {
-            Ok(())
-        } else {
-            Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
-        }
-    }
-
-    fn assert_float(&self) -> Result<()> {
-        if self.header.sample_format == SampleFormat::Float {
-            Ok(())
-        } else {
-            Err(Error::new(ErrorKind::InvalidData, "Converting to float unsupported"))
-        }
-    }
 }
 
 type ReadSampleFromStream<T> = fn(&mut dyn Read) -> Result<T>;
@@ -102,17 +86,17 @@ mod private_parts {
 }
 
 pub trait StreamOpenWavReader: private_parts::POpenWavReader {
-    fn get_stream_int_8_reader(self) -> Result<StreamWavReader<i8>>;
-    fn get_stream_int_16_reader(self) -> Result<StreamWavReader<i16>>;
-    fn get_stream_int_24_reader(self) -> Result<StreamWavReader<i32>>;
-    fn get_stream_float_reader(self) -> Result<StreamWavReader<f32>>;
+    fn get_stream_i8_reader(self) -> Result<StreamWavReader<i8>>;
+    fn get_stream_i16_reader(self) -> Result<StreamWavReader<i16>>;
+    fn get_stream_i24_reader(self) -> Result<StreamWavReader<i32>>;
+    fn get_stream_f32_reader(self) -> Result<StreamWavReader<f32>>;
 }
 
 pub trait RandomAccessOpenWavReader: private_parts::PRandomAccessOpenWavReader {
-    fn get_random_access_int_8_reader(self) -> Result<RandomAccessWavReader<i8>>;
-    fn get_random_access_int_16_reader(self) -> Result<RandomAccessWavReader<i16>>;
-    fn get_random_access_int_24_reader(self) -> Result<RandomAccessWavReader<i32>>;
-    fn get_random_access_float_reader(self) -> Result<RandomAccessWavReader<f32>>;
+    fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>>;
+    fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>>;
+    fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>>;
+    fn get_random_access_f32_reader(self) -> Result<RandomAccessWavReader<f32>>;
 }
 
 pub struct RandomAccessWavReader<T> {
