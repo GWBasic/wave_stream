@@ -38,14 +38,6 @@ impl OpenWavWriter {
         })
     }
 
-    fn assert_float(&self) -> Result<()> {
-        if self.header.sample_format == SampleFormat::Float {
-            Ok(())
-        } else {
-            Err(Error::new(ErrorKind::InvalidData, "Converting to float unsupported"))
-        }
-    }
-
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;

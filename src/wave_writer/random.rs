@@ -83,12 +83,17 @@ impl OpenWavWriter {
     }
 
     pub fn get_random_access_f32_writer(self) -> Result<RandomAccessWavWriter<f32>> {
-        self.assert_float()?;
-
-        Ok(RandomAccessWavWriter {
-            open_wav: self,
-            write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: f32| writer.write_f32(value))
-        })
+        match self.header.sample_format {
+            SampleFormat::Float => {
+                Ok(RandomAccessWavWriter {
+                    open_wav: self,
+                    write_sample_to_stream: Box::new(|mut writer: &mut dyn Write, value: f32| writer.write_f32(value))
+                })
+            },
+            _ => {
+                Err(Error::new(ErrorKind::InvalidData, "Converting to 32-bit float unsupported"))
+            }
+        }
     }
 }
 
