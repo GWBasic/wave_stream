@@ -1,4 +1,4 @@
-use std::io::{ Error, ErrorKind, Read, Result };
+use std::io::{ Read, Result };
 
 use crate::open_wav::OpenWav;
 use crate::ReadEx;
@@ -67,15 +67,6 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
             data_length,
             data_start
         })
-    }
-
-    // TODO: Delete this
-    fn assert_int_8(&self) -> Result<()> {
-        if self.header.sample_format == SampleFormat::Int8 {
-            Ok(())
-        } else {
-            Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
-        }
     }
 }
 

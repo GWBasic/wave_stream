@@ -113,6 +113,16 @@ mod tests {
             i8::from_le_bytes([0x7F]),
             i8::from_le_bytes([0x7A])).unwrap();
     }
+    
+    #[test]
+    fn read_random_i8_as_i16() {
+        read_random(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            32255,
+            32767,
+            31487).unwrap();
+    }
 
     #[test]
     fn read_random_i8_as_i24() {
@@ -241,6 +251,16 @@ mod tests {
             i8::from_le_bytes([0x7D]),
             i8::from_le_bytes([0x7F]),
             i8::from_le_bytes([0x7A])).unwrap();
+    }
+    
+    #[test]
+    fn read_stream_i8_as_i16() {
+        read_stream(
+            Path::new("test_data/short_8.wav"),
+            Box::new(|open_wav| open_wav.get_stream_i16_reader()),
+            32255,
+            32767,
+            31487).unwrap();
     }
 
     #[test]
@@ -410,6 +430,24 @@ mod tests {
             Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
             Box::new(|sample_value| sample_value as i8));
     }
+    
+    #[test]
+    fn write_random_i8_as_i16() {
+        write_random(
+            SampleFormat::Int16,
+            // Wav is upconverted from 8-bit to 16-bit on read
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()),
+            Box::new(|sample_value| {
+                let sample_value = sample_value as i32; 
+                if sample_value > 0 {
+                    return (((sample_value + 1) / 256) - 1) as i8;
+                } else { // sample_value < 0 {
+                    return (sample_value / 256) as i8;
+                }
+            }),
+            Box::new(|open_wav| open_wav.get_random_access_i8_writer()),
+            Box::new(|sample_value| sample_value as i8));
+    }
 
     #[test]
     fn write_random_i8_as_i24() {
@@ -562,6 +600,16 @@ mod tests {
             Box::new(|open_wav| open_wav.get_stream_i8_reader()),
             Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
             Box::new(|open_wav| open_wav.get_random_access_i8_reader()))
+    }
+    
+    #[test]
+    fn write_stream_i8_as_i16() {
+        write_stream(
+            Path::new("test_data/short_8.wav"),
+            SampleFormat::Int16,
+            Box::new(|open_wav| open_wav.get_stream_i8_reader()),
+            Box::new(|open_wav, read_samples_iter| open_wav.write_all_i8(read_samples_iter)),
+            Box::new(|open_wav| open_wav.get_random_access_i16_reader()))
     }
 
     #[test]

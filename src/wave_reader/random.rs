@@ -26,16 +26,25 @@ impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWav
 
 impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader<TReader> {
     fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>> {
-        self.assert_int_8()?;
-
-        Ok(RandomAccessWavReader {
-            open_wav: Box::new(self),
-            read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
-        })
+        match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
+                })
+            },
+            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
+        }
     }
 
     fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>> {
         match self.header.sample_format {
+            SampleFormat::Int8 => {
+                Ok(RandomAccessWavReader {
+                    open_wav: Box::new(self),
+                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i16())
+                })
+            },
             SampleFormat::Int16 => {
                 Ok(RandomAccessWavReader {
                     open_wav: Box::new(self),

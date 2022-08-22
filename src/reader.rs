@@ -1,7 +1,7 @@
 use std::io::{ Error, ErrorKind, Read, Result };
 use std::str;
 
-use crate::upconvert::{ i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i24 };
+use crate::upconvert::{ i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24 };
 
 pub trait ReadEx : Read {
     fn skip(&mut self, length: usize) -> Result<()>;
@@ -12,6 +12,7 @@ pub trait ReadEx : Read {
     fn read_i16(&mut self) -> Result<i16>;
     fn read_i16_as_i24(&mut self) -> Result<i32>;
     fn read_i8_as_i24(&mut self) -> Result<i32>;
+    fn read_i8_as_i16(&mut self) -> Result<i16>;
     fn read_u16(&mut self) -> Result<u16>;
     fn read_f32(&mut self) -> Result<f32>;
     fn read_i8(&mut self) -> Result<i8>;
@@ -85,6 +86,11 @@ impl<T> ReadEx for T where T: Read {
     fn read_i8_as_i24(&mut self) -> Result<i32> {
         let sample_i8 = self.read_i8()?;
         Ok(i8_to_i24(sample_i8)?)
+    }
+
+    fn read_i8_as_i16(&mut self) -> Result<i16> {
+        let sample_i8 = self.read_i8()?;
+        Ok(i8_to_i16(sample_i8)?)
     }
 
     fn read_u16(&mut self) -> Result<u16> {
