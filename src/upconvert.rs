@@ -1,15 +1,15 @@
-use std::io::{ Result };
+use std::io::Result;
 
 use crate::assertions::assert_int_24;
 
-pub const INT_24_ADD_FOR_FLOAT_ABS:f32 = 8388608.0;
-pub const INT_24_DIVIDE_FOR_FLOAT:f32 = 8388607.5;
+pub const INT_24_ADD_FOR_FLOAT_ABS: f32 = 8388608.0;
+pub const INT_24_DIVIDE_FOR_FLOAT: f32 = 8388607.5;
 
-pub const INT_16_ADD_FOR_FLOAT_ABS:f32 = 32768.0;
-pub const INT_16_DIVIDE_FOR_FLOAT:f32 = 32767.5;
+pub const INT_16_ADD_FOR_FLOAT_ABS: f32 = 32768.0;
+pub const INT_16_DIVIDE_FOR_FLOAT: f32 = 32767.5;
 
-pub const INT_8_ADD_FOR_FLOAT_ABS:f32 = 128.0;
-pub const INT_8_DIVIDE_FOR_FLOAT:f32 = 127.5;
+pub const INT_8_ADD_FOR_FLOAT_ABS: f32 = 128.0;
+pub const INT_8_DIVIDE_FOR_FLOAT: f32 = 127.5;
 
 pub fn i24_to_f32(sample_i24: i32) -> Result<f32> {
     assert_int_24(sample_i24)?;
@@ -37,7 +37,8 @@ pub fn i16_to_i24(sample_i16: i16) -> Result<i32> {
     let sample_i24: i32;
     if sample_i32 >= 0 {
         sample_i24 = ((sample_i32 + 1) * 256) - 1;
-    } else { //sample_i32 < 0 {
+    } else {
+        //sample_i32 < 0 {
         sample_i24 = sample_i32 * 256;
     }
 
@@ -50,7 +51,8 @@ pub fn i8_to_i24(sample_i8: i8) -> Result<i32> {
     let sample_i24: i32;
     if sample_i32 >= 0 {
         sample_i24 = ((sample_i32 + 1) * 65536) - 1;
-    } else { //sample_i32 < 0 {
+    } else {
+        //sample_i32 < 0 {
         sample_i24 = sample_i32 * 65536;
     }
 
@@ -63,7 +65,8 @@ pub fn i8_to_i16(sample_i8: i8) -> Result<i16> {
     let sample_i16: i32;
     if sample_i32 >= 0 {
         sample_i16 = ((sample_i32 + 1) * 256) - 1;
-    } else { //sample_i32 < 0 {
+    } else {
+        //sample_i32 < 0 {
         sample_i16 = sample_i32 * 256;
     }
 
@@ -74,7 +77,7 @@ pub fn i8_to_i16(sample_i8: i8) -> Result<i16> {
 mod tests {
     use test_case::test_case;
 
-    use crate::constants::{ MAX_INT_24, MIN_INT_24 };
+    use crate::constants::{MAX_INT_24, MIN_INT_24};
 
     use super::*;
 

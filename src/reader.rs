@@ -1,9 +1,9 @@
-use std::io::{ Error, ErrorKind, Read, Result };
+use std::io::{Error, ErrorKind, Read, Result};
 use std::str;
 
-use crate::upconvert::{ i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24 };
+use crate::upconvert::{i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24};
 
-pub trait ReadEx : Read {
+pub trait ReadEx: Read {
     fn skip(&mut self, length: usize) -> Result<()>;
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()>;
     fn read_str(&mut self, len: usize) -> Result<String>;
@@ -22,7 +22,10 @@ pub trait ReadEx : Read {
     fn read_i8_as_f32(&mut self) -> Result<f32>;
 }
 
-impl<T> ReadEx for T where T: Read {
+impl<T> ReadEx for T
+where
+    T: Read,
+{
     fn skip(&mut self, length: usize) -> Result<()> {
         if length > 0 {
             let mut buf = [0u8];
@@ -36,21 +39,24 @@ impl<T> ReadEx for T where T: Read {
 
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()> {
         let bytes_read = self.read(buf)?;
-    
+
         if bytes_read == buf.len() {
             Ok(())
         } else {
-            Err(Error::new(ErrorKind::UnexpectedEof, "Unexpected end of file"))
+            Err(Error::new(
+                ErrorKind::UnexpectedEof,
+                "Unexpected end of file",
+            ))
         }
     }
 
     fn read_str(&mut self, len: usize) -> Result<String> {
         let mut buf = vec![0u8; len];
         self.read_fixed_size(&mut buf[..])?;
-    
+
         match String::from_utf8(buf) {
             Ok(s) => Ok(s),
-            Err(utf8error) => Err(Error::new(ErrorKind::Other, format!("{}", utf8error)))
+            Err(utf8error) => Err(Error::new(ErrorKind::Other, format!("{}", utf8error))),
         }
     }
 
@@ -61,7 +67,7 @@ impl<T> ReadEx for T where T: Read {
             Ok(())
         } else {
             Err(Error::new(error_kind, message))
-        }    
+        }
     }
 
     fn read_u32(&mut self) -> Result<u32> {
