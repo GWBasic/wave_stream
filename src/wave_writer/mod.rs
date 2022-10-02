@@ -1,11 +1,11 @@
-use std::io::{ Error, ErrorKind, Result, Seek, SeekFrom, Write };
+use std::io::{Result, Seek, SeekFrom, Write};
 
 use crate::open_wav::OpenWav;
-use crate::WriteEx;
 use crate::SampleFormat;
 use crate::WavHeader;
+use crate::WriteEx;
 
-pub trait WriteSeek : Write + Seek {}
+pub trait WriteSeek: Write + Seek {}
 
 impl<TWriteSeek: Write + Seek> WriteSeek for TWriteSeek {}
 
@@ -14,16 +14,19 @@ pub struct OpenWavWriter {
     header: WavHeader,
     data_start: u32,
     chunk_size_written: bool,
-    samples_written: u32
+    samples_written: u32,
 }
 
 pub struct RandomAccessWavWriter<T> {
     open_wav: OpenWavWriter,
-    write_sample_to_stream: Box<dyn Fn(&mut dyn Write, T) -> Result<()>>
+    write_sample_to_stream: Box<dyn Fn(&mut dyn Write, T) -> Result<()>>,
 }
 
 impl OpenWavWriter {
-    pub fn new<TWriter: 'static + WriteSeek>(mut writer: TWriter, header: WavHeader) -> Result<OpenWavWriter> {
+    pub fn new<TWriter: 'static + WriteSeek>(
+        mut writer: TWriter,
+        header: WavHeader,
+    ) -> Result<OpenWavWriter> {
         writer.write_str("data")?;
         writer.write_u32(0)?;
 
@@ -34,14 +37,15 @@ impl OpenWavWriter {
             header,
             data_start,
             chunk_size_written: false,
-            samples_written: 0
+            samples_written: 0,
         })
     }
 
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
-        self.writer.seek(SeekFrom::Start(self.data_start as u64 - 4u64))?;
+        self.writer
+            .seek(SeekFrom::Start(self.data_start as u64 - 4u64))?;
         self.writer.write_u32(chunk_size)?;
 
         // RIFF header
@@ -78,7 +82,7 @@ impl OpenWav for OpenWavWriter {
             SampleFormat::Float => 4,
             SampleFormat::Int24 => 3,
             SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1
+            SampleFormat::Int8 => 1,
         }
     }
 

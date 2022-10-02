@@ -1,10 +1,10 @@
-use std::io::{ Error, ErrorKind, Read, Result, Seek, SeekFrom };
+use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom};
 
 use crate::OpenWavReader;
+use crate::RandomAccessOpenWavReader;
+use crate::RandomAccessWavReader;
 use crate::ReadEx;
 use crate::SampleFormat;
-use crate::RandomAccessWavReader;
-use crate::RandomAccessOpenWavReader;
 
 use super::private_parts;
 
@@ -27,84 +27,85 @@ impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWav
 impl<TReader: 'static + Read + Seek> RandomAccessOpenWavReader for OpenWavReader<TReader> {
     fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>> {
         match self.header.sample_format {
-            SampleFormat::Int8 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8())
-                })
-            },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 8-bit unsupported"))
+            SampleFormat::Int8 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8()),
+            }),
+            _ => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Converting to 8-bit unsupported",
+            )),
         }
     }
 
     fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>> {
         match self.header.sample_format {
-            SampleFormat::Int8 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i16())
-                })
-            },
-            SampleFormat::Int16 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16())
-                })
-            },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 16-bit unsupported"))
+            SampleFormat::Int8 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i8_as_i16()
+                }),
+            }),
+            SampleFormat::Int16 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16()),
+            }),
+            _ => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Converting to 16-bit unsupported",
+            )),
         }
     }
 
     fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>> {
         match self.header.sample_format {
-            SampleFormat::Int8 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_i24())
-                })
-            },
-            SampleFormat::Int16 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16_as_i24())
-                })
-            },
-            SampleFormat::Int24 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24())
-                })
-            },
-            _ => Err(Error::new(ErrorKind::InvalidData, "Converting to 24-bit unsupported"))
+            SampleFormat::Int8 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i8_as_i24()
+                }),
+            }),
+            SampleFormat::Int16 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i16_as_i24()
+                }),
+            }),
+            SampleFormat::Int24 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24()),
+            }),
+            _ => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Converting to 24-bit unsupported",
+            )),
         }
     }
 
     fn get_random_access_f32_reader(self) -> Result<RandomAccessWavReader<f32>> {
         match self.header.sample_format {
-            SampleFormat::Int8 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i8_as_f32())
-                })
-            },
-            SampleFormat::Int16 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i16_as_f32())
-                })
-            },
-            SampleFormat::Int24 => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_i24_as_f32())
-                })
-            },
-            SampleFormat::Float => {
-                Ok(RandomAccessWavReader {
-                    open_wav: Box::new(self),
-                    read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32())
-                })
-            },
+            SampleFormat::Int8 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i8_as_f32()
+                }),
+            }),
+            SampleFormat::Int16 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i16_as_f32()
+                }),
+            }),
+            SampleFormat::Int24 => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| {
+                    reader.read_i24_as_f32()
+                }),
+            }),
+            SampleFormat::Float => Ok(RandomAccessWavReader {
+                open_wav: Box::new(self),
+                read_sample_from_stream: Box::new(|mut reader: &mut dyn Read| reader.read_f32()),
+            }),
         }
     }
 }

@@ -1,16 +1,16 @@
 // Influenced by https://github.com/kujirahand/wav_io/blob/main/src/header.rs
 
-use std::io::{ Error, ErrorKind, Read, Result, Write };
+use std::io::{Error, ErrorKind, Read, Result, Write};
 
-use crate::{ ReadEx, WriteEx };
+use crate::{ReadEx, WriteEx};
 
 /// Sample Format
-#[derive(Debug,Copy,Clone,PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SampleFormat {
     Int8,
     Int16,
     Int24,
-    Float
+    Float,
 }
 
 /// Wav file header
@@ -29,12 +29,21 @@ impl WavHeader {
 
         *subchunk_size = reader.read_u32()?;
         if *subchunk_size < 16 {
-            return Err(Error::new(ErrorKind::Unsupported, format!("Invalid header. fmt header must be size 16 or larger, actual value: {}", subchunk_size)));
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                format!(
+                    "Invalid header. fmt header must be size 16 or larger, actual value: {}",
+                    subchunk_size
+                ),
+            ));
         }
 
         let audio_format = reader.read_u16()?; // 2
         if !(audio_format == 1 || audio_format == 3) {
-            return Err(Error::new(ErrorKind::Unsupported, format!("Unsupported audio format: {}", subchunk_size)));
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                format!("Unsupported audio format: {}", subchunk_size),
+            ));
         }
 
         let channels = reader.read_u16()?; // 4
@@ -56,7 +65,10 @@ impl WavHeader {
         } else if bits_per_sample <= 24 {
             SampleFormat::Int24
         } else {
-            return Err(Error::new(ErrorKind::Unsupported, format!("{} bits per sample unsupported", bits_per_sample)));
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                format!("{} bits per sample unsupported", bits_per_sample),
+            ));
         };
 
         // Skip additional ignored headers
@@ -76,7 +88,7 @@ impl WavHeader {
 
         let audio_format: u16 = match header.sample_format {
             SampleFormat::Float => 3,
-            _ => 1
+            _ => 1,
         };
 
         writer.write_u16(audio_format)?;
@@ -85,9 +97,9 @@ impl WavHeader {
 
         let bytes_per_sample: u16 = match header.sample_format {
             SampleFormat::Float => 4,
-            SampleFormat:: Int24 => 3,
+            SampleFormat::Int24 => 3,
             SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1
+            SampleFormat::Int8 => 1,
         };
 
         let bytes_per_sec: u32 = header.sample_rate * ((header.channels * bytes_per_sample) as u32);

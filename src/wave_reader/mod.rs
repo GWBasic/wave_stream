@@ -1,4 +1,4 @@
-use std::io::{ Read, Result };
+use std::io::{Read, Result};
 
 use crate::open_wav::OpenWav;
 use crate::ReadEx;
@@ -12,7 +12,7 @@ pub struct OpenWavReader<TReader: Read> {
     data_start: u32,
 }
 
-impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
+impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
     fn sample_format(&self) -> SampleFormat {
         self.header.sample_format
     }
@@ -32,9 +32,9 @@ impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
     fn bytes_per_sample(&self) -> u16 {
         match self.header.sample_format {
             SampleFormat::Float => 4,
-            SampleFormat:: Int24 => 3,
+            SampleFormat::Int24 => 3,
             SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1
+            SampleFormat::Int8 => 1,
         }
     }
 
@@ -44,12 +44,16 @@ impl<TReader : Read> OpenWav for OpenWavReader<TReader> {
 }
 
 impl<TReader: 'static + Read> OpenWavReader<TReader> {
-    pub fn new(mut reader: TReader, header: WavHeader, position: u32) -> Result<OpenWavReader<TReader>> {
+    pub fn new(
+        mut reader: TReader,
+        header: WavHeader,
+        position: u32,
+    ) -> Result<OpenWavReader<TReader>> {
         let mut data_start = position;
         'find_data_chunk: loop {
             let chunk_name = reader.read_str(4)?;
             data_start += 8;
-            
+
             if chunk_name.eq("data") {
                 break 'find_data_chunk;
             }
@@ -65,7 +69,7 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
             reader,
             header,
             data_length,
-            data_start
+            data_start,
         })
     }
 }
@@ -73,7 +77,7 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
 type ReadSampleFromStream<T> = fn(&mut dyn Read) -> Result<T>;
 
 mod private_parts {
-    use std::io::{ Read, Seek };
+    use std::io::{Read, Seek};
 
     pub trait POpenWavReader: super::OpenWav {
         fn data_start(&self) -> u32;
@@ -101,18 +105,18 @@ pub trait RandomAccessOpenWavReader: private_parts::PRandomAccessOpenWavReader {
 
 pub struct RandomAccessWavReader<T> {
     open_wav: Box<dyn RandomAccessOpenWavReader>,
-    read_sample_from_stream: Box<ReadSampleFromStream<T>>
+    read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
 pub struct StreamWavReader<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
-    read_sample_from_stream: Box<ReadSampleFromStream<T>>
+    read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
 pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
-    current_sample: u32
+    current_sample: u32,
 }
 
 mod random;
