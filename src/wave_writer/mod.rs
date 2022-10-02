@@ -1,4 +1,4 @@
-use std::io::{Error, ErrorKind, Result, Seek, SeekFrom, Write};
+use std::io::{Result, Seek, SeekFrom, Write};
 
 use crate::open_wav::OpenWav;
 use crate::SampleFormat;
