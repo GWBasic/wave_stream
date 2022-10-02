@@ -874,9 +874,4 @@ mod tests {
             Ok(())
         }));
     }
-
-    #[test]
-    fn fail() {
-        assert!(false)
-    }
 }
