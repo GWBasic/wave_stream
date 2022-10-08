@@ -9,6 +9,7 @@ pub trait WriteSeek: Write + Seek {}
 
 impl<TWriteSeek: Write + Seek> WriteSeek for TWriteSeek {}
 
+/// An open wav writer
 pub struct OpenWavWriter {
     writer: Box<dyn WriteSeek>,
     header: WavHeader,
@@ -17,12 +18,17 @@ pub struct OpenWavWriter {
     samples_written: u32,
 }
 
+/// An open random access wav writer
 pub struct RandomAccessWavWriter<T> {
     open_wav: OpenWavWriter,
     write_sample_to_stream: Box<dyn Fn(&mut dyn Write, T) -> Result<()>>,
 }
 
 impl OpenWavWriter {
+    /// Constructs a new wav writer
+    /// 
+    /// * 'writer' - The (Write + Seek) struct to write the wav into. It is strongly recommended that this struct implement some form of buffering, such as via a BufWriter
+    /// * 'header' - The header that represents the desired sampling rate and bit depth
     pub fn new<TWriter: 'static + WriteSeek>(
         mut writer: TWriter,
         header: WavHeader,
@@ -41,6 +47,7 @@ impl OpenWavWriter {
         })
     }
 
+    /// Flushes all buffered data to the stream
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;

@@ -5,6 +5,7 @@ use crate::ReadEx;
 use crate::SampleFormat;
 use crate::WavHeader;
 
+/// Represents an open wav file
 pub struct OpenWavReader<TReader: Read> {
     reader: TReader,
     header: WavHeader,
@@ -44,6 +45,13 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
 }
 
 impl<TReader: 'static + Read> OpenWavReader<TReader> {
+    /// Creates a new OpenWavReader
+    ///
+    /// # Arguments
+    ///
+    /// * 'reader' - A Read struct. It is strongly recommended that this struct implement some form of buffering, such as via a BufReader
+    /// * 'header' - The header that represents the sample rate and bit depth of the wav
+    /// * 'position' - The current position of the reader
     pub fn new(
         mut reader: TReader,
         header: WavHeader,
@@ -89,30 +97,43 @@ mod private_parts {
     }
 }
 
+/// An open streaming wav reader. Samples must be read in a sequential manner
 pub trait StreamOpenWavReader: private_parts::POpenWavReader {
+    /// Reads the wav as 8-bit samples. (Note that downsampling to 8-bit is not supported)
     fn get_stream_i8_reader(self) -> Result<StreamWavReader<i8>>;
+    /// Reads the wav as 16-bit samples. (Note that downsampling to 16-bit is not supported)
     fn get_stream_i16_reader(self) -> Result<StreamWavReader<i16>>;
+    /// Reads the wav as 24-bit samples. (Note that downsampling to 24-bit is not supported)
     fn get_stream_i24_reader(self) -> Result<StreamWavReader<i32>>;
+    /// Reads the wav as floating point samples. All sample formats can be read as floats
     fn get_stream_f32_reader(self) -> Result<StreamWavReader<f32>>;
 }
 
+/// An open random-access wav reader. Samples may be read in a random-access manner
 pub trait RandomAccessOpenWavReader: private_parts::PRandomAccessOpenWavReader {
+    /// Reads the wav as 8-bit samples. (Note that downsampling to 8-bit is not supported)
     fn get_random_access_i8_reader(self) -> Result<RandomAccessWavReader<i8>>;
+    /// Reads the wav as 16-bit samples. (Note that downsampling to 16-bit is not supported)
     fn get_random_access_i16_reader(self) -> Result<RandomAccessWavReader<i16>>;
+    /// Reads the wav as 24-bit samples. (Note that downsampling to 24-bit is not supported)
     fn get_random_access_i24_reader(self) -> Result<RandomAccessWavReader<i32>>;
+    /// Reads the wav as floating point samples. All sample formats can be read as floats
     fn get_random_access_f32_reader(self) -> Result<RandomAccessWavReader<f32>>;
 }
 
+/// An open random-access wav reader. Samples may be read in a random-access manner
 pub struct RandomAccessWavReader<T> {
     open_wav: Box<dyn RandomAccessOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
+/// An open streaming wav reader. Samples must be read in a sequential manner
 pub struct StreamWavReader<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
+/// An open streaming wav reader. Samples must be read in a sequential manner
 pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,

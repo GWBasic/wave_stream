@@ -19,6 +19,11 @@ use wave_reader::*;
 use wave_writer::*;
 use writer::WriteEx;
 
+/// Reads a wav from a given path
+///
+/// # Arguments
+///
+/// * 'file_path' - A Path that is the path to the wav file to read
 pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
@@ -26,6 +31,11 @@ pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufRead
     read_wav(reader)
 }
 
+/// Reads a wav from a Read struct
+///
+/// # Arguments
+///
+/// * 'reader' - A Read struct. It is strongly recommended that this struct implement some form of buffering, such as via a BufReader
 pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str(
@@ -50,6 +60,12 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
     OpenWavReader::new(reader, header, 20 + subchunk_size)
 }
 
+/// Starts writing a wav to a Path. Returns an OpenWavWriter struct that is used to write the contents of the wav
+///
+/// # Arguments
+///
+/// * 'file_path' - The path to where the wav will be written
+/// * 'header' - The header information in the wav. This specifies things like sampling rate, sample bit depth, ect
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;
     let writer = BufWriter::new(file);
@@ -57,6 +73,12 @@ pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<Ope
     write_wav(writer, header)
 }
 
+/// Starts writing a wav to a (Write + Seek) struct. Returns an OpenWavWriter struct that is used to write the contents of the wav
+///
+/// # Arguments
+///
+/// * 'writer' - The (Write + Seek) struct to write the wav into. It is strongly recommended that this struct implement some form of buffering, such as via a BufWriter
+/// * 'header' - The header information in the wav. This specifies things like sampling rate, sample bit depth, ect
 pub fn write_wav<TWriter: 'static + Write + Seek>(
     mut writer: TWriter,
     header: WavHeader,

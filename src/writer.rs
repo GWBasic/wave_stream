@@ -3,6 +3,7 @@ use std::io::{Result, Write};
 use crate::assertions::assert_int_24;
 use crate::upconvert::{i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24};
 
+/// Convenience methods for writing to a stream
 pub trait WriteEx: Write {
     fn write_str(&mut self, s: &str) -> Result<()>;
     fn write_i32(&mut self, v: i32) -> Result<()>;
