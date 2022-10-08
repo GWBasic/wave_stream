@@ -24,6 +24,21 @@ use writer::WriteEx;
 /// # Arguments
 ///
 /// * 'file_path' - A Path that is the path to the wav file to read
+///
+/// # Examples
+///
+/// ```
+/// let open_wav = read_wav_from_file_path("some.wav")?;
+/// println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}"
+///     open_wav.channels(),
+///     open_wav.bits_per_sample(),
+///     open_wav.sample_rate(),
+///     open_wav.len_samples());
+///
+/// let mut wave_reader = open_wav.get_random_access_f32_reader()?;
+/// let first_sample = wave_reader.read_sample(0, 0)?;
+/// println!("First sample, channel 0: {0}", first_sample);
+/// ```
 pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
@@ -66,6 +81,32 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 ///
 /// * 'file_path' - The path to where the wav will be written
 /// * 'header' - The header information in the wav. This specifies things like sampling rate, sample bit depth, ect
+///
+/// # Examples
+///
+/// ```
+/// let header = WavHeader {
+///     sample_format: SampleFormat::Float,
+///     channels: 2,
+///     sample_rate: 96000,
+/// };
+/// let mut open_wav = write_wav_to_file_path("some.wav", header)?;
+/// let mut writer = open_wav.get_random_access_f32_writer()
+///
+/// // Sample 0
+/// writer.write_sample(0, 0, 0.0)?; // Channel 0
+/// writer.write_sample(0, 1, 0.0)?; // Channel 1
+///
+/// // Sample 1
+/// writer.write_sample(1, 0, 0.0)?;
+/// writer.write_sample(1, 1, 0.0)?;
+///
+/// // Sample 2
+/// writer.write_sample(2, 0, 0.0)?;
+/// writer.write_sample(3, 1, 0.0)?;
+///
+/// open_wav.flush()?;
+/// ```
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;
     let writer = BufWriter::new(file);
