@@ -7,9 +7,11 @@ use crate::{ReadEx, WriteEx};
 /// Sample Format, sample bit depth
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SampleFormat {
-    /// 8-bit. Audio quality equivalent to a cassette without noise reduction
+    /// 8-bit. Audio quality equivalent to a cassette without noise reduction. Noise shaping and/or dithering is needed
+    /// for acceptable audio quality.
     Int8,
-    /// 16-bit. Same as audio CD
+    /// 16-bit. Same as audio CD. Quantization will be noticible on quiet sounds, unless noise shaping and/or dithering
+    /// is used.
     Int16,
     /// 24-bit. Generally exceeds the range of human hearing, except when played at levels that exceed the threshold of pain
     Int24,
