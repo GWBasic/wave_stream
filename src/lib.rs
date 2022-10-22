@@ -1,3 +1,30 @@
+/*!
+wave_stream is a library that allows reading and writing wave files. Random-access reading and writing
+is supported, as well as reading via an enumerable and writing via an enumerable. Unlike other wave
+libraries, the whole file is not sucked into memory.
+
+# Examples
+
+```
+let open_wav = read_wav_from_file_path("some.wav").unwrap();
+
+// Inspect metadata
+println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}",
+    open_wav.channels(),
+    open_wav.bits_per_sample(),
+    open_wav.sample_rate(),
+    open_wav.len_samples());
+
+// Read via random access
+let mut wave_reader_random = open_wav.get_random_access_f32_reader().unwrap();
+let first_sample = wave_reader_random.read_sample(0, 0).unwrap();
+println!("First sample, channel 0: {0}", first_sample);
+
+// Read via enumerable
+let mut
+```
+*/
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Read, Result, Seek, Write};
 use std::path::Path;
@@ -25,20 +52,6 @@ use writer::WriteEx;
 ///
 /// * 'file_path' - A Path that is the path to the wav file to read
 ///
-/// # Examples
-///
-/// ```
-/// let open_wav = read_wav_from_file_path("some.wav")?;
-/// println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}"
-///     open_wav.channels(),
-///     open_wav.bits_per_sample(),
-///     open_wav.sample_rate(),
-///     open_wav.len_samples());
-///
-/// let mut wave_reader = open_wav.get_random_access_f32_reader()?;
-/// let first_sample = wave_reader.read_sample(0, 0)?;
-/// println!("First sample, channel 0: {0}", first_sample);
-/// ```
 pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
