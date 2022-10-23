@@ -4,19 +4,28 @@ use std::io::{Error, ErrorKind, Read, Result, Write};
 
 use crate::{ReadEx, WriteEx};
 
-/// Sample Format
+/// Sample Format, sample bit depth
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SampleFormat {
+    /// 8-bit. Audio quality equivalent to a cassette without noise reduction. Noise shaping and/or dithering is needed
+    /// for acceptable audio quality.
     Int8,
+    /// 16-bit. Same as audio CD. Quantization will be noticible on quiet sounds, unless noise shaping and/or dithering
+    /// is used.
     Int16,
+    /// 24-bit. Generally exceeds the range of human hearing, except when played at levels that exceed the threshold of pain
     Int24,
+    /// Floating point. Generally exceeds the range of human hearing. Recommended when additional processing is anticipated
     Float,
 }
 
-/// Wav file header
+/// Wav file header. Used to specify wav parameters when creating a wav, or to query wav parameters when reading a wav
 pub struct WavHeader {
+    /// The sample format
     pub sample_format: SampleFormat,
+    /// The number of channels
     pub channels: u16,
+    /// The sample rate
     pub sample_rate: u32,
     // Note: This may be needed to signal that a wav is an oddball bits per second: 12, 20, ect
     // (Samples are always aligned on the byte, IE, that's why 8-bit, 16-bit, and 24-bit int, and 32-bit float are supported)
@@ -24,6 +33,12 @@ pub struct WavHeader {
 }
 
 impl WavHeader {
+    /// Reads a header from a Read struct
+    ///
+    /// # Arguments
+    ///
+    /// * 'reader' - A Read struct. It is strongly recommended that this struct implement some form of buffering, such as via a BufReader
+    /// * 'subchunk_size' - Out value, set to the size of the header, or undefined if there is an IO error
     pub fn from_reader(reader: &mut impl Read, subchunk_size: &mut u32) -> Result<WavHeader> {
         reader.assert_str("fmt ", ErrorKind::Unsupported, "Not a WAVE file")?;
 
@@ -82,6 +97,11 @@ impl WavHeader {
         })
     }
 
+    /// Writes a header to a Write stuct
+    ///
+    /// # Arguments
+    ///
+    /// * 'writer' - The Write struct to write the wav header into
     pub fn to_writer(writer: &mut impl Write, header: &WavHeader) -> Result<()> {
         writer.write(b"fmt ")?;
         writer.write_u32(16)?;

@@ -1,3 +1,141 @@
+//! wave_stream is a library that allows reading and writing wave files. Random-access reading and writing
+//! is supported, as well as reading via an enumerable and writing via an enumerable. Unlike other wave
+//! libraries, the whole file is not sucked into memory.
+//!
+//! Read through the example below to understand how to read a wav's metadata, read the wav, and write a wav.
+//!
+//! It's generally reccomended that you read and write wav files as float (f32). (Unless you're cropping and
+//! appending existing 16-bit, 24-bit, or 8-bit waves files.) wave_stream does not implement any way to
+//! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
+//! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
+//!
+//! # Example
+//!
+//! ``` rust
+//! use std::f32::consts::{PI, TAU};
+//! use std::io::Result;
+//! use std::path::Path;
+//!
+//! use wave_stream::open_wav::OpenWav;
+//! use wave_stream::wave_header::{SampleFormat, WavHeader};
+//! use wave_stream::wave_reader::{RandomAccessOpenWavReader, StreamOpenWavReader};
+//! use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
+//!
+//! fn main() {
+//!     let open_wav = read_wav_from_file_path(Path::new("some.wav")).unwrap();
+//!
+//!     // Inspect metadata
+//!     // ******************************
+//!     println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}",
+//!         open_wav.channels(),
+//!         open_wav.bits_per_sample(),
+//!         open_wav.sample_rate(),
+//!         open_wav.len_samples());
+//!
+//!     // Read via random access
+//!     // ******************************
+//!     let mut random_access_wave_reader = open_wav.get_random_access_f32_reader().unwrap();
+//!     let first_sample = random_access_wave_reader.read_sample(0, 0).unwrap();
+//!     println!("First sample, channel 0: {0}", first_sample);
+//!
+//!     // Read via an enumerable: Find the loudest sample in the wave file
+//!     // ******************************
+//!     let open_wav = read_wav_from_file_path(Path::new("some.wav")).unwrap();
+//!     let mut loudest_sample = f32::MIN;
+//!
+//!     // Note that the wave is read as f32 values in this example.
+//!     // Reading as 8-bit, (i8) 16-bit, (i16) and 24-bit (i32) is also supported.
+//!     // Upsampling during reads is supported. (You can read an 8-bit wav file as f32)
+//!     // Downsampling during reads isn't supported. (You can't read a floating point wav file as i8)
+//!     //
+//!     // In general:
+//!     // - For audio manipulation: f32 is *strongly* reccomended
+//!     // - Only use i16, i32, (or i8), when cutting existing audio without manipulation
+//!     let iterator = open_wav.get_stream_f32_reader().unwrap().into_iter();
+//!
+//!     for samples_result in iterator {
+//!         let samples = samples_result.unwrap();
+//!
+//!         for sample in samples {
+//!             loudest_sample = f32::max(loudest_sample, sample);
+//!         }
+//!     }
+//!
+//!     println!("Loudest sample: {0}", loudest_sample);
+//!
+//!     // Write via random access
+//!     // ******************************
+//!     let sample_rate = 96000;
+//!     let header = WavHeader {
+//!         sample_format: SampleFormat::Float,
+//!         channels: 1,
+//!         sample_rate,
+//!     };
+//!
+//!     let open_wav = write_wav_to_file_path(Path::new("ramp.wav"), header).unwrap();
+//!
+//!     // Note that the wave is written as f32 (32-bit float). 8-bit (i8), 16-bit (i16), and 24-bit (i32) integer are
+//!     // also supprted.
+//!     // Downconverting (IE, float -> 16-bit) is *not* supported. In general, it's best to perform audio manipulation
+//!     // using f32. Outputting to an integer format like 16-bit (CD quality) will only sound good if you implement your
+//!     // own noise shaper or dithering algorithm. A command-line tool like sox will perform excellent noise shaping if
+//!     // you write a 32-bit float wav, and then use sox to convert it to 16-bit.
+//!     let mut random_access_wave_writer = open_wav.get_random_access_f32_writer().unwrap();
+//!
+//!     let samples_in_ramp = 2000;
+//!     let samples_in_ramp_f32 = samples_in_ramp as f32;
+//!     for sample in 0u32..(sample_rate * 3u32) {
+//!         // Write 3 seconds of samples
+//!         let modulo = (sample % samples_in_ramp) as f32;
+//!         let sample_value = (2f32 * modulo / samples_in_ramp_f32) - 1f32;
+//!         random_access_wave_writer
+//!             .write_sample(sample, 0, sample_value)
+//!             .unwrap();
+//!     }
+//!
+//!     random_access_wave_writer.flush().unwrap();
+//!
+//!     // Write via iterator
+//!     // ******************************
+//!     let header = WavHeader {
+//!         sample_format: SampleFormat::Float,
+//!         channels: 1,
+//!         sample_rate,
+//!     };
+//!
+//!     let open_wav = write_wav_to_file_path(Path::new("sine.wav"), header).unwrap();
+//!     let sine_iterator = SineIterator {
+//!         period: (sample_rate / 60) as f32,
+//!         current_sample: PI, // Start at 0 crossing
+//!     };
+//!     let sine_iterator_three_seconds = sine_iterator.take((sample_rate * 3u32) as usize); // Write 3 seconds
+//!     open_wav.write_all_f32(sine_iterator_three_seconds).unwrap();
+//! }
+//!
+//! // Used when writing via iterator
+//! struct SineIterator {
+//!     period: f32,
+//!     current_sample: f32,
+//! }
+//!
+//! // Used when writing via iterator
+//! impl Iterator for SineIterator {
+//!     type Item = Result<Vec<f32>>;
+//!
+//!     fn next(&mut self) -> Option<Result<Vec<f32>>> {
+//!         let result = (self.current_sample / self.period * TAU).sin();
+//!         self.current_sample += 1f32;
+//!
+//!         if self.current_sample > self.period {
+//!             self.current_sample = 0f32;
+//!         }
+//!
+//!         return Some(Ok(vec![result]));
+//!     }
+//! }
+//!
+//! ```
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Read, Result, Seek, Write};
 use std::path::Path;
@@ -19,6 +157,12 @@ use wave_reader::*;
 use wave_writer::*;
 use writer::WriteEx;
 
+/// Reads a wav from a given path
+///
+/// # Arguments
+///
+/// * 'file_path' - A Path that is the path to the wav file to read
+///
 pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufReader<File>>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
@@ -26,6 +170,11 @@ pub fn read_wav_from_file_path(file_path: &Path) -> Result<OpenWavReader<BufRead
     read_wav(reader)
 }
 
+/// Reads a wav from a Read struct
+///
+/// # Arguments
+///
+/// * 'reader' - A Read struct. It is strongly recommended that this struct implement some form of buffering, such as via a BufReader
 pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavReader<TReader>> {
     // Verify that this is a RIFF file
     reader.assert_str(
@@ -50,6 +199,43 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
     OpenWavReader::new(reader, header, 20 + subchunk_size)
 }
 
+/// Starts writing a wav to a Path. Returns an OpenWavWriter struct that is used to write the contents of the wav
+///
+/// # Arguments
+///
+/// * 'file_path' - The path to where the wav will be written
+/// * 'header' - The header information in the wav. This specifies things like sampling rate, sample bit depth, ect
+///
+/// # Examples
+///
+/// ```
+/// use std::path::Path;
+///
+/// use wave_stream::wave_header::{SampleFormat, WavHeader};
+/// use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
+///
+/// let header = WavHeader {
+///     sample_format: SampleFormat::Float,
+///     channels: 2,
+///     sample_rate: 96000,
+/// };
+/// let mut open_wav = write_wav_to_file_path(Path::new("some.wav"), header).unwrap();
+/// let mut writer = open_wav.get_random_access_f32_writer().unwrap();
+///
+/// // Sample 0
+/// writer.write_sample(0, 0, 0.0).unwrap(); // Channel 0
+/// writer.write_sample(0, 1, 0.0).unwrap(); // Channel 1
+///
+/// // Sample 1
+/// writer.write_sample(1, 0, 0.0).unwrap();
+/// writer.write_sample(1, 1, 0.0).unwrap();
+///
+/// // Sample 2
+/// writer.write_sample(2, 0, 0.0).unwrap();
+/// writer.write_sample(3, 1, 0.0).unwrap();
+///
+/// writer.flush().unwrap();
+/// ```
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;
     let writer = BufWriter::new(file);
@@ -57,6 +243,12 @@ pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<Ope
     write_wav(writer, header)
 }
 
+/// Starts writing a wav to a (Write + Seek) struct. Returns an OpenWavWriter struct that is used to write the contents of the wav
+///
+/// # Arguments
+///
+/// * 'writer' - The (Write + Seek) struct to write the wav into. It is strongly recommended that this struct implement some form of buffering, such as via a BufWriter
+/// * 'header' - The header information in the wav. This specifies things like sampling rate, sample bit depth, ect
 pub fn write_wav<TWriter: 'static + Write + Seek>(
     mut writer: TWriter,
     header: WavHeader,

@@ -3,6 +3,7 @@ use std::str;
 
 use crate::upconvert::{i16_to_f32, i16_to_i24, i24_to_f32, i8_to_f32, i8_to_i16, i8_to_i24};
 
+/// Convenience methods for reading from a stream
 pub trait ReadEx: Read {
     fn skip(&mut self, length: usize) -> Result<()>;
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()>;
