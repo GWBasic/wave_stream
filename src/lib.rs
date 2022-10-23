@@ -209,13 +209,18 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 /// # Examples
 ///
 /// ```
+/// use std::path::Path;
+///
+/// use wave_stream::wave_header::{SampleFormat, WavHeader};
+/// use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
+///
 /// let header = WavHeader {
 ///     sample_format: SampleFormat::Float,
 ///     channels: 2,
 ///     sample_rate: 96000,
 /// };
-/// let mut open_wav = write_wav_to_file_path("some.wav", header).unwrap();
-/// let mut writer = open_wav.get_random_access_f32_writer();
+/// let mut open_wav = write_wav_to_file_path(Path::new("some.wav"), header).unwrap();
+/// let mut writer = open_wav.get_random_access_f32_writer().unwrap();
 ///
 /// // Sample 0
 /// writer.write_sample(0, 0, 0.0).unwrap(); // Channel 0
@@ -229,7 +234,7 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 /// writer.write_sample(2, 0, 0.0).unwrap();
 /// writer.write_sample(3, 1, 0.0).unwrap();
 ///
-/// open_wav.flush().unwrap();
+/// writer.flush().unwrap();
 /// ```
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;

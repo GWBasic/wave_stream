@@ -10,3 +10,6 @@ Cargo.lock
 **/*.rs.bk
 
 .DS_Store
+ramp.wav
+sine.wav
+some.wav
