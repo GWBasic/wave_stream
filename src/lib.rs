@@ -214,22 +214,22 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 ///     channels: 2,
 ///     sample_rate: 96000,
 /// };
-/// let mut open_wav = write_wav_to_file_path("some.wav", header)?;
-/// let mut writer = open_wav.get_random_access_f32_writer()
+/// let mut open_wav = write_wav_to_file_path("some.wav", header).unwrap();
+/// let mut writer = open_wav.get_random_access_f32_writer();
 ///
 /// // Sample 0
-/// writer.write_sample(0, 0, 0.0)?; // Channel 0
-/// writer.write_sample(0, 1, 0.0)?; // Channel 1
+/// writer.write_sample(0, 0, 0.0).unwrap(); // Channel 0
+/// writer.write_sample(0, 1, 0.0).unwrap(); // Channel 1
 ///
 /// // Sample 1
-/// writer.write_sample(1, 0, 0.0)?;
-/// writer.write_sample(1, 1, 0.0)?;
+/// writer.write_sample(1, 0, 0.0).unwrap();
+/// writer.write_sample(1, 1, 0.0).unwrap();
 ///
 /// // Sample 2
-/// writer.write_sample(2, 0, 0.0)?;
-/// writer.write_sample(3, 1, 0.0)?;
+/// writer.write_sample(2, 0, 0.0).unwrap();
+/// writer.write_sample(3, 1, 0.0).unwrap();
 ///
-/// open_wav.flush()?;
+/// open_wav.flush().unwrap();
 /// ```
 pub fn write_wav_to_file_path(file_path: &Path, header: WavHeader) -> Result<OpenWavWriter> {
     let file = File::create(file_path)?;
