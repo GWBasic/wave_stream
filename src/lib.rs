@@ -869,7 +869,8 @@ mod tests {
             let open_wav = write_wav_to_file_path(path, header)?;
             let mut writer = get_random_access_writer(open_wav)?;
 
-            for sample in 0..100u32 {
+            for sample_inv in 0..100u32 {
+                let sample = 99 - sample_inv;
                 for channel in 0..writer.info().channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
                     writer.write_sample(sample, channel, convert_sample_to_write(sample_value))?;
