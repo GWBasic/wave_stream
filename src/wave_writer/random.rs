@@ -114,8 +114,8 @@ impl<T> RandomAccessWavWriter<T> {
         if sample >= self.open_wav.samples_written {
             self.open_wav.writer.seek(SeekFrom::End(0))?;
 
-            let padding_size = (self.open_wav.samples_written - sample + 1)
-                * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
+            let samples_to_pad = (sample + 1) - self.open_wav.samples_written;
+            let padding_size = samples_to_pad * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
             let padding = vec![0u8; 1];
             for _ in 0..padding_size {
                 self.open_wav.writer.write(&padding)?;
