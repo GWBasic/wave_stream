@@ -135,3 +135,5 @@ impl<T> RandomAccessWavReader<T> {
         (*self.read_sample_from_stream)(reader)
     }
 }
+
+unsafe impl<T> Send for RandomAccessWavReader<T> {}
