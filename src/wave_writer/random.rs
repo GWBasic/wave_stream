@@ -141,3 +141,5 @@ impl<T> RandomAccessWavWriter<T> {
         self.open_wav.flush()
     }
 }
+
+unsafe impl<T> Send for RandomAccessWavWriter<T> {}
