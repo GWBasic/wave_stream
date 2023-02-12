@@ -1,7 +1,13 @@
 [package]
 name = "wave_stream"
+description = "Wave file reader and writer. Random access and streaming is supported for reading, random access is supported for writing"
 version = "0.1.0"
 edition = "2021"
+authors = ["Andrew Rondeau <git@andrewrondeau.com>"]
+keywords = ["wav", "wave", "audio", "sound", "dsp"]
+categories = ["multimedia::audio", "encoding"]
+readme = "README.md"
+repository = "https://github.com/GWBasic/wave_stream"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
