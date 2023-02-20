@@ -13,9 +13,9 @@ impl<TWriteSeek: Write + Seek> WriteSeek for TWriteSeek {}
 pub struct OpenWavWriter {
     writer: Box<dyn WriteSeek>,
     header: WavHeader,
-    data_start: u32,
+    data_start: usize,
     chunk_size_written: bool,
-    samples_written: u32,
+    samples_written: usize,
 }
 
 /// An open random access wav writer
@@ -36,7 +36,7 @@ impl OpenWavWriter {
         writer.write_str("data")?;
         writer.write_u32(0)?;
 
-        let data_start = writer.stream_position()? as u32;
+        let data_start = writer.stream_position()? as usize;
 
         Ok(OpenWavWriter {
             writer: Box::new(writer),
@@ -50,14 +50,15 @@ impl OpenWavWriter {
     /// Flushes all buffered data to the stream
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
-        let chunk_size = self.samples_written * (self.channels() * self.bytes_per_sample()) as u32;
+        let chunk_size =
+            self.samples_written * (self.channels() * self.bytes_per_sample()) as usize;
         self.writer
             .seek(SeekFrom::Start(self.data_start as u64 - 4u64))?;
-        self.writer.write_u32(chunk_size)?;
+        self.writer.write_u32(chunk_size as u32)?;
 
         // RIFF header
         self.writer.seek(SeekFrom::Start(4))?;
-        self.writer.write_u32(chunk_size + 32 - 8)?;
+        self.writer.write_u32((chunk_size + 32 - 8) as u32)?;
 
         self.chunk_size_written = true;
 
@@ -93,7 +94,7 @@ impl OpenWav for OpenWavWriter {
         }
     }
 
-    fn len_samples(&self) -> u32 {
+    fn len_samples(&self) -> usize {
         self.samples_written
     }
 }

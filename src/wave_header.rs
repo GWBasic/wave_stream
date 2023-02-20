@@ -39,10 +39,10 @@ impl WavHeader {
     ///
     /// * 'reader' - A Read struct. It is strongly recommended that this struct implement some form of buffering, such as via a BufReader
     /// * 'subchunk_size' - Out value, set to the size of the header, or undefined if there is an IO error
-    pub fn from_reader(reader: &mut impl Read, subchunk_size: &mut u32) -> Result<WavHeader> {
+    pub fn from_reader(reader: &mut impl Read, subchunk_size: &mut usize) -> Result<WavHeader> {
         reader.assert_str("fmt ", ErrorKind::Unsupported, "Not a WAVE file")?;
 
-        *subchunk_size = reader.read_u32()?;
+        *subchunk_size = reader.read_u32()? as usize;
         if *subchunk_size < 16 {
             return Err(Error::new(
                 ErrorKind::Unsupported,

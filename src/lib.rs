@@ -191,7 +191,7 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 
     // file position is 12
 
-    let mut subchunk_size = 0u32;
+    let mut subchunk_size = 0usize;
     let header = WavHeader::from_reader(&mut reader, &mut subchunk_size)?;
 
     // subchunk size doesn't include 4-letter prefix and 4-byte length
@@ -869,7 +869,7 @@ mod tests {
             let open_wav = write_wav_to_file_path(path, header)?;
             let mut writer = get_random_access_writer(open_wav)?;
 
-            for sample_inv in 0..100u32 {
+            for sample_inv in 0..100usize {
                 let sample = 99 - sample_inv;
                 for channel in 0..writer.info().channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
@@ -884,7 +884,7 @@ mod tests {
 
             let mut reader = get_random_access_reader(open_wav)?;
 
-            for sample in 0..100u32 {
+            for sample in 0..100usize {
                 for channel in 0..reader.info().channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
                     let value = reader.read_sample(sample, channel)?;
