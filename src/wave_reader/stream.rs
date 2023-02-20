@@ -128,7 +128,7 @@ impl<T> Iterator for StreamWavReaderIterator<T> {
                 let sample = match read_result {
                     Ok(sample) => sample,
                     Err(err) => {
-                        self.current_sample = u32::MAX;
+                        self.current_sample = u32::MAX as usize;
                         return Some(Err(err));
                     }
                 };

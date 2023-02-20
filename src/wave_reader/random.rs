@@ -9,7 +9,7 @@ use crate::SampleFormat;
 use super::private_parts;
 
 impl<TReader: Read> private_parts::POpenWavReader for OpenWavReader<TReader> {
-    fn data_start(&self) -> u32 {
+    fn data_start(&self) -> usize {
         self.data_start
     }
 
@@ -115,7 +115,7 @@ impl<T> RandomAccessWavReader<T> {
         &self.open_wav
     }
 
-    pub fn read_sample(&mut self, sample: u32, channel: u16) -> Result<T> {
+    pub fn read_sample(&mut self, sample: usize, channel: u16) -> Result<T> {
         if sample >= self.open_wav.len_samples() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
         }
@@ -124,8 +124,8 @@ impl<T> RandomAccessWavReader<T> {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
 
-        let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
-        let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as u32;
+        let sample_in_channels = (sample * self.open_wav.channels() as usize) + channel as usize;
+        let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as usize;
         let position = self.open_wav.data_start() + sample_in_bytes;
 
         let seeker = self.open_wav.seeker();

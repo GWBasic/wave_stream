@@ -13,5 +13,5 @@ pub trait OpenWav {
     /// The bytes per sample
     fn bytes_per_sample(&self) -> u16;
     /// The total number of samples in the wav file
-    fn len_samples(&self) -> u32;
+    fn len_samples(&self) -> usize;
 }

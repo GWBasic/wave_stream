@@ -9,8 +9,8 @@ use crate::WavHeader;
 pub struct OpenWavReader<TReader: Read> {
     reader: TReader,
     header: WavHeader,
-    data_length: u32,
-    data_start: u32,
+    data_length: usize,
+    data_start: usize,
 }
 
 impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
@@ -39,8 +39,8 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
         }
     }
 
-    fn len_samples(&self) -> u32 {
-        self.data_length / (self.bytes_per_sample()) as u32 / self.header.channels as u32
+    fn len_samples(&self) -> usize {
+        self.data_length / (self.bytes_per_sample() as usize) / (self.header.channels as usize)
     }
 }
 
@@ -55,7 +55,7 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
     pub fn new(
         mut reader: TReader,
         header: WavHeader,
-        position: u32,
+        position: usize,
     ) -> Result<OpenWavReader<TReader>> {
         let mut data_start = position;
         'find_data_chunk: loop {
@@ -66,12 +66,12 @@ impl<TReader: 'static + Read> OpenWavReader<TReader> {
                 break 'find_data_chunk;
             }
 
-            let chunk_size = reader.read_u32()?;
+            let chunk_size = reader.read_u32()? as usize;
             data_start += chunk_size;
             reader.skip(chunk_size as usize)?;
         }
 
-        let data_length = reader.read_u32()?;
+        let data_length = reader.read_u32()? as usize;
 
         Ok(OpenWavReader {
             reader,
@@ -88,7 +88,7 @@ mod private_parts {
     use std::io::{Read, Seek};
 
     pub trait POpenWavReader: super::OpenWav {
-        fn data_start(&self) -> u32;
+        fn data_start(&self) -> usize;
         fn reader(&mut self) -> &mut (dyn Read);
     }
 
@@ -137,7 +137,7 @@ pub struct StreamWavReader<T> {
 pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
-    current_sample: u32,
+    current_sample: usize,
 }
 
 mod random;

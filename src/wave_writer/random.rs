@@ -105,7 +105,7 @@ impl<T> RandomAccessWavWriter<T> {
         &(self.open_wav)
     }
 
-    pub fn write_sample(&mut self, sample: u32, channel: u16, value: T) -> Result<()> {
+    pub fn write_sample(&mut self, sample: usize, channel: u16, value: T) -> Result<()> {
         if channel >= self.open_wav.channels() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
@@ -116,7 +116,7 @@ impl<T> RandomAccessWavWriter<T> {
 
             let samples_to_pad = (sample + 1) - self.open_wav.samples_written;
             let padding_size = samples_to_pad
-                * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as u32;
+                * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as usize;
             let padding = vec![0u8; 1];
             for _ in 0..padding_size {
                 self.open_wav.writer.write(&padding)?;
@@ -124,7 +124,7 @@ impl<T> RandomAccessWavWriter<T> {
             self.open_wav.samples_written = sample + 1;
         }
 
-        let sample_in_channels = (sample * self.open_wav.channels() as u32) + channel as u32;
+        let sample_in_channels = (sample * self.open_wav.channels() as usize) + channel as usize;
         let sample_in_bytes =
             (sample_in_channels as u64) * (self.open_wav.bytes_per_sample() as u64);
         let position = (self.open_wav.data_start as u64) + sample_in_bytes;
