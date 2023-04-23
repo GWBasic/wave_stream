@@ -4,6 +4,7 @@ use crate::open_wav::OpenWav;
 use crate::SampleFormat;
 use crate::WavHeader;
 use crate::WriteEx;
+use crate::wave_header::Channels;
 
 pub trait WriteSeek: Write + Seek {}
 
@@ -51,7 +52,7 @@ impl OpenWavWriter {
     pub fn flush(&mut self) -> Result<()> {
         // data chunk
         let chunk_size =
-            self.samples_written * (self.channels() * self.bytes_per_sample()) as usize;
+            self.samples_written * (self.num_channels() * self.bytes_per_sample()) as usize;
         self.writer
             .seek(SeekFrom::Start(self.data_start as u64 - 4u64))?;
         self.writer.write_u32(chunk_size as u32)?;
@@ -73,7 +74,11 @@ impl OpenWav for OpenWavWriter {
         self.header.sample_format
     }
 
-    fn channels(&self) -> u16 {
+    fn num_channels(&self) -> u16 {
+        self.header.channels.count()
+    }
+
+    fn channels(&self) -> Channels {
         self.header.channels
     }
 

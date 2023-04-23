@@ -120,11 +120,12 @@ impl<T> RandomAccessWavReader<T> {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
         }
 
-        if channel >= self.open_wav.channels() {
+        if channel >= self.open_wav.num_channels() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
         }
 
-        let sample_in_channels = (sample * self.open_wav.channels() as usize) + channel as usize;
+        let sample_in_channels =
+            (sample * self.open_wav.num_channels() as usize) + channel as usize;
         let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as usize;
         let position = self.open_wav.data_start() + sample_in_bytes;
 

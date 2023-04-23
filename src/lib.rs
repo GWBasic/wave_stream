@@ -149,6 +149,7 @@ pub mod writer;
 
 mod assertions;
 mod constants;
+mod samples_by_channel;
 mod upconvert;
 
 use reader::ReadEx;
@@ -279,21 +280,21 @@ mod tests {
     fn open_sanity() {
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         assert_eq!(SampleFormat::Float, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(32, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
         assert_eq!(SampleFormat::Int24, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(24, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         assert_eq!(SampleFormat::Int16, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(16, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
@@ -307,7 +308,7 @@ mod tests {
             SampleFormat::Float,
             wave_reader_float.info().sample_format()
         );
-        assert_eq!(1, wave_reader_float.info().channels());
+        assert_eq!(1, wave_reader_float.info().num_channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
@@ -477,7 +478,7 @@ mod tests {
             SampleFormat::Float,
             wave_reader_float.info().sample_format()
         );
-        assert_eq!(1, wave_reader_float.info().channels());
+        assert_eq!(1, wave_reader_float.info().num_channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
@@ -674,7 +675,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format"
             );
-            assert_eq!(10, open_wav.channels(), "Wrong channels");
+            assert_eq!(10, open_wav.num_channels(), "Wrong channels");
             assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
             assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
             assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
@@ -688,7 +689,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format when reading"
             );
-            assert_eq!(10, open_wav.channels(), "Wrong channels when reading");
+            assert_eq!(10, open_wav.num_channels(), "Wrong channels when reading");
             assert_eq!(
                 96000,
                 open_wav.sample_rate(),
@@ -871,7 +872,7 @@ mod tests {
 
             for sample_inv in 0..100usize {
                 let sample = 99 - sample_inv;
-                for channel in 0..writer.info().channels() {
+                for channel in 0..writer.info().num_channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
                     writer.write_sample(sample, channel, convert_sample_to_write(sample_value))?;
                 }
@@ -885,7 +886,7 @@ mod tests {
             let mut reader = get_random_access_reader(open_wav)?;
 
             for sample in 0..100usize {
-                for channel in 0..reader.info().channels() {
+                for channel in 0..reader.info().num_channels() {
                     let sample_value = (sample as i32) * 10 + (channel as i32);
                     let value = reader.read_sample(sample, channel)?;
                     assert_eq!(
@@ -1034,7 +1035,7 @@ mod tests {
 
             let header = WavHeader {
                 sample_format,
-                channels: source_wav.channels(),
+                channels: source_wav.num_channels(),
                 sample_rate: source_wav.sample_rate(),
             };
             let open_wav = write_wav_to_file_path(path, header)?;
@@ -1045,11 +1046,11 @@ mod tests {
             let expected_wav = read_wav_from_file_path(read_path)?;
             let actual_wav = read_wav_from_file_path(path)?;
 
-            assert_eq!(expected_wav.channels(), actual_wav.channels());
+            assert_eq!(expected_wav.num_channels(), actual_wav.num_channels());
             assert_eq!(expected_wav.len_samples(), actual_wav.len_samples());
 
             let len_samples = expected_wav.len_samples();
-            let channels = expected_wav.channels();
+            let channels = expected_wav.num_channels();
 
             let mut expected_wav_reader = get_random_access_reader(expected_wav)?;
             let mut actual_wav_reader = get_random_access_reader(actual_wav)?;

@@ -4,6 +4,7 @@ use crate::open_wav::OpenWav;
 use crate::ReadEx;
 use crate::SampleFormat;
 use crate::WavHeader;
+use crate::wave_header::Channels;
 
 /// Represents an open wav file
 pub struct OpenWavReader<TReader: Read> {
@@ -18,7 +19,11 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
         self.header.sample_format
     }
 
-    fn channels(&self) -> u16 {
+    fn num_channels(&self) -> u16 {
+        self.header.channels.count()
+    }
+
+    fn channels(&self) -> Channels {
         self.header.channels
     }
 
@@ -40,7 +45,9 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
     }
 
     fn len_samples(&self) -> usize {
-        self.data_length / (self.bytes_per_sample() as usize) / (self.header.channels as usize)
+        self.data_length
+            / (self.bytes_per_sample() as usize)
+            / (self.header.channels.count() as usize)
     }
 }
 

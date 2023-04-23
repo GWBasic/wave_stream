@@ -120,7 +120,7 @@ impl<T> Iterator for StreamWavReaderIterator<T> {
         if self.current_sample >= self.open_wav.len_samples() {
             None
         } else {
-            let num_channels: usize = self.open_wav.channels().into();
+            let num_channels: usize = self.open_wav.num_channels().into();
             let mut samples = Vec::new();
 
             for _channel in 0..num_channels {

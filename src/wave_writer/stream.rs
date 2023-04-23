@@ -98,7 +98,7 @@ impl OpenWavWriter {
     where
         TIterator: Iterator<Item = Result<Vec<T>>>,
     {
-        let channels = self.channels() as usize;
+        let channels = self.num_channels() as usize;
 
         let position = self.data_start as u64;
 
