@@ -271,6 +271,7 @@ mod tests {
 
     use super::*;
     use crate::open_wav::OpenWav;
+    use crate::samples_by_channel::SamplesByChannel;
     use crate::upconvert::{
         INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT, INT_8_ADD_FOR_FLOAT_ABS,
         INT_8_DIVIDE_FOR_FLOAT,
@@ -665,7 +666,26 @@ mod tests {
         test_with_file(Box::new(|path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Float,
-                channels: 10,
+                channels: Channels {
+                    front_left: true,
+                    front_right: true,
+                    front_center: true,
+                    low_frequency: true,
+                    back_left: true,
+                    back_right: true,
+                    front_left_of_center: false,
+                    front_right_of_center: false,
+                    back_center: false,
+                    side_left: false,
+                    side_right: false,
+                    top_center: false,
+                    top_front_left: false,
+                    top_front_center: false,
+                    top_front_right: false,
+                    top_back_left: false,
+                    top_back_center: false,
+                    top_back_right: false,
+                },
                 sample_rate: 96000,
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
@@ -864,7 +884,26 @@ mod tests {
         test_with_file(Box::new(move |path| {
             let header = WavHeader {
                 sample_format,
-                channels: 10,
+                channels: Channels {
+                    front_left: true,
+                    front_right: true,
+                    front_center: true,
+                    low_frequency: true,
+                    back_left: true,
+                    back_right: true,
+                    front_left_of_center: true,
+                    front_right_of_center: true,
+                    back_center: true,
+                    side_left: true,
+                    side_right: true,
+                    top_center: true,
+                    top_front_left: true,
+                    top_front_center: true,
+                    top_front_right: true,
+                    top_back_left: true,
+                    top_back_center: true,
+                    top_back_right: true,
+                },
                 sample_rate: 96000,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
@@ -872,10 +911,28 @@ mod tests {
 
             for sample_inv in 0..100usize {
                 let sample = 99 - sample_inv;
-                for channel in 0..writer.info().num_channels() {
-                    let sample_value = (sample as i32) * 10 + (channel as i32);
-                    writer.write_sample(sample, channel, convert_sample_to_write(sample_value))?;
-                }
+                let sample_value = (sample as i32) * 18;
+                let samples_by_channel = SamplesByChannel::<T> {
+                    front_left: Some(convert_sample_to_write(sample_value + 0i32)),
+                    front_right: Some(convert_sample_to_write(sample_value + 1)),
+                    front_center: Some(convert_sample_to_write(sample_value + 2)),
+                    low_frequency: Some(convert_sample_to_write(sample_value + 3)),
+                    back_left: Some(convert_sample_to_write(sample_value + 4)),
+                    back_right: Some(convert_sample_to_write(sample_value + 5)),
+                    front_left_of_center: Some(convert_sample_to_write(sample_value + 6)),
+                    front_right_of_center: Some(convert_sample_to_write(sample_value + 7)),
+                    back_center: Some(convert_sample_to_write(sample_value + 8)),
+                    side_left: Some(convert_sample_to_write(sample_value + 9)),
+                    side_right: Some(convert_sample_to_write(sample_value + 10)),
+                    top_center: Some(convert_sample_to_write(sample_value + 11)),
+                    top_front_left: Some(convert_sample_to_write(sample_value + 12)),
+                    top_front_center: Some(convert_sample_to_write(sample_value + 13)),
+                    top_front_right: Some(convert_sample_to_write(sample_value + 14)),
+                    top_back_left: Some(convert_sample_to_write(sample_value + 15)),
+                    top_back_center: Some(convert_sample_to_write(sample_value + 16)),
+                    top_back_right: Some(convert_sample_to_write(sample_value + 17)),
+                };
+                writer.write_samples(sample, samples_by_channel)?;
             }
 
             writer.flush()?;
@@ -1035,7 +1092,7 @@ mod tests {
 
             let header = WavHeader {
                 sample_format,
-                channels: source_wav.num_channels(),
+                channels: source_wav.channels().clone(),
                 sample_rate: source_wav.sample_rate(),
             };
             let open_wav = write_wav_to_file_path(path, header)?;

@@ -23,8 +23,8 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
         self.header.channels.count()
     }
 
-    fn channels(&self) -> Channels {
-        self.header.channels
+    fn channels(&self) -> &Channels {
+        &self.header.channels
     }
 
     fn sample_rate(&self) -> u32 {

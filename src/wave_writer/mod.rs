@@ -1,10 +1,10 @@
 use std::io::{Result, Seek, SeekFrom, Write};
 
 use crate::open_wav::OpenWav;
+use crate::wave_header::Channels;
 use crate::SampleFormat;
 use crate::WavHeader;
 use crate::WriteEx;
-use crate::wave_header::Channels;
 
 pub trait WriteSeek: Write + Seek {}
 
@@ -78,8 +78,8 @@ impl OpenWav for OpenWavWriter {
         self.header.channels.count()
     }
 
-    fn channels(&self) -> Channels {
-        self.header.channels
+    fn channels(&self) -> &Channels {
+        &self.header.channels
     }
 
     fn sample_rate(&self) -> u32 {

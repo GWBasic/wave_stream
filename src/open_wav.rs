@@ -7,7 +7,7 @@ pub trait OpenWav {
     // The number of channels
     fn num_channels(&self) -> u16;
     // The channels that the wav contains
-    fn channels(&self) -> Channels;
+    fn channels(&self) -> &Channels;
     /// The samples per second
     fn sample_rate(&self) -> u32;
     /// The bits per sample

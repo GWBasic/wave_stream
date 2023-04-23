@@ -20,6 +20,7 @@ pub enum SampleFormat {
 }
 
 // Flags of all of the channels in the file
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Channels {
     pub front_left: bool,
     pub front_right: bool,
@@ -76,14 +77,22 @@ impl WavHeader {
         }
 
         let audio_format = reader.read_u16()?; // 2
-        if !(audio_format == 1 || audio_format == 3) {
-            return Err(Error::new(
-                ErrorKind::Unsupported,
-                format!("Unsupported audio format: {}", subchunk_size),
-            ));
-        }
 
-        let channels = reader.read_u16()?; // 4
+        if audio_format == 1 || audio_format == 3 {
+            Self::from_reader_classic(reader, subchunk_size)
+        // wFormatTag: WAVE_FORMAT_EXTENSIBLE, https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+        } else if audio_format == 0xFFFE {
+            Self::from_reader_extensible(reader, subchunk_size)
+        } else {
+            Err(Error::new(
+                ErrorKind::Unsupported,
+                format!("Unsupported audio format: {}", audio_format),
+            ))
+        }
+    }
+
+    fn from_reader_classic(reader: &mut impl Read, subchunk_size: &mut usize) -> Result<WavHeader> {
+        let num_channels = reader.read_u16()?; // 4
         let sample_rate = reader.read_u32()?; // 8
 
         let _bytes_per_sec = reader.read_u32()?; // 12
@@ -111,6 +120,98 @@ impl WavHeader {
         // Skip additional ignored headers
         // (By now we're read 16 bytes)
         reader.skip((*subchunk_size - 16) as usize)?;
+
+        Ok(WavHeader {
+            sample_format,
+            channels: Channels {
+                front_left: num_channels >= 1,
+                front_right: num_channels >= 2,
+                front_center: num_channels >= 3,
+                low_frequency: num_channels >= 4,
+                back_left: num_channels >= 5,
+                back_right: num_channels >= 6,
+                front_left_of_center: num_channels >= 7,
+                front_right_of_center: num_channels >= 8,
+                back_center: num_channels >= 9,
+                side_left: num_channels >= 10,
+                side_right: num_channels >= 11,
+                top_center: num_channels >= 12,
+                top_front_left: num_channels >= 13,
+                top_front_center: num_channels >= 14,
+                top_front_right: num_channels >= 15,
+                top_back_left: num_channels >= 16,
+                top_back_center: num_channels >= 17,
+                top_back_right: num_channels >= 18,
+            },
+            sample_rate,
+        })
+    }
+
+    fn from_reader_extensible(
+        reader: &mut impl Read,
+        subchunk_size: &mut usize,
+    ) -> Result<WavHeader> {
+        let num_channels = reader.read_u16()?; // 4
+        let sample_rate = reader.read_u32()?; // 8
+
+        let _bytes_per_sec = reader.read_u32()?; // 12
+        let _data_block_size = reader.read_u16()?; // 14
+
+        // This supports oddball situations, like 12-bit, or 20-bit
+        // Normally, those are rounded up with least-significant-bit 0ed out
+        // (12-bit written as 16-bit, 20-bit written as 24-bit)
+        let bits_per_sample = reader.read_u16()?; // 16
+        let sample_format = if bits_per_sample == 32 {
+            SampleFormat::Float
+        } else if bits_per_sample <= 8 {
+            SampleFormat::Int8
+        } else if bits_per_sample <= 16 {
+            SampleFormat::Int16
+        } else if bits_per_sample <= 24 {
+            SampleFormat::Int24
+        } else {
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                format!("{} bits per sample unsupported", bits_per_sample),
+            ));
+        };
+
+        // Ignore cbSize
+        let _cb_size = reader.read_u16()?;
+
+        // Ignore wValidBitsPerSample
+        let _w_valid_bits_per_sample = reader.read_u16()?;
+
+        let channel_mask = reader.read_u32()?;
+
+        // Skip additional ignored headers
+        // (By now we're read 24 bytes)
+        reader.skip((*subchunk_size - 24) as usize)?;
+
+        let channels = Channels {
+            front_left: channel_mask & 0x1 == 0x1,
+            front_right: channel_mask & 0x1 == 0x2,
+            front_center: channel_mask & 0x1 == 0x4,
+            low_frequency: channel_mask & 0x1 == 0x8,
+            back_left: channel_mask & 0x1 == 0x10,
+            back_right: channel_mask & 0x1 == 0x20,
+            front_left_of_center: channel_mask & 0x1 == 0x40,
+            front_right_of_center: channel_mask & 0x1 == 0x80,
+            back_center: channel_mask & 0x1 == 0x100,
+            side_left: channel_mask & 0x1 == 0x200,
+            side_right: channel_mask & 0x1 == 0x400,
+            top_center: channel_mask & 0x1 == 0x800,
+            top_front_left: channel_mask & 0x1 == 0x1000,
+            top_front_center: channel_mask & 0x1 == 0x2000,
+            top_front_right: channel_mask & 0x1 == 0x4000,
+            top_back_left: channel_mask & 0x1 == 0x8000,
+            top_back_center: channel_mask & 0x1 == 0x10000,
+            top_back_right: channel_mask & 0x1 == 0x20000,
+        };
+
+        if num_channels != channels.count() {
+            return Err(Error::new(ErrorKind::Unsupported, "Mismatch between number of channels specified in the header, and channel mask"));
+        }
 
         Ok(WavHeader {
             sample_format,

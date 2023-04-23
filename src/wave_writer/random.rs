@@ -106,7 +106,11 @@ impl<T> RandomAccessWavWriter<T> {
         &(self.open_wav)
     }
 
-    pub fn write_samples(&mut self, sample: usize, samples_by_channel: SamplesByChannel<T>) -> Result<()> {
+    pub fn write_samples(
+        &mut self,
+        sample: usize,
+        _samples_by_channel: SamplesByChannel<T>,
+    ) -> Result<()> {
         // Pad the file if needed
         if sample >= self.open_wav.samples_written {
             self.open_wav.writer.seek(SeekFrom::End(0))?;
@@ -132,7 +136,7 @@ impl<T> RandomAccessWavWriter<T> {
 
         self.open_wav.chunk_size_written = false;
 
-/*
+        /*
         if self.open_wav.channels().left {
             (*self.write_sample_to_stream)(&mut self.open_wav.writer, samples_by_channel.left.expect("Left channel missing"))?;
         }
@@ -142,7 +146,10 @@ impl<T> RandomAccessWavWriter<T> {
 
         Ok(())
         */
-        return Err(Error::new(ErrorKind::Unsupported, "Currently unimplemented"));
+        return Err(Error::new(
+            ErrorKind::Unsupported,
+            "Currently unimplemented",
+        ));
     }
 
     pub fn flush(&mut self) -> Result<()> {
