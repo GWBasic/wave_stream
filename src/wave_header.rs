@@ -103,16 +103,20 @@ impl WavHeader {
     ///
     /// * 'writer' - The Write struct to write the wav header into
     pub fn to_writer(writer: &mut impl Write, header: &WavHeader) -> Result<()> {
+        // Write WAVEFORMATEX
         writer.write(b"fmt ")?;
-        writer.write_u32(16)?;
+        writer.write_u32(18)?;
 
         let audio_format: u16 = match header.sample_format {
             SampleFormat::Float => 3,
             _ => 1,
         };
 
+        // wFormatTag
         writer.write_u16(audio_format)?;
+        // nChannels
         writer.write_u16(header.channels)?;
+        // nSamplesPerSec
         writer.write_u32(header.sample_rate)?;
 
         let bytes_per_sample: u16 = match header.sample_format {
@@ -122,14 +126,20 @@ impl WavHeader {
             SampleFormat::Int8 => 1,
         };
 
+        // nAvgBytesPerSec
         let bytes_per_sec: u32 = header.sample_rate * ((header.channels * bytes_per_sample) as u32);
         writer.write_u32(bytes_per_sec)?;
 
+        // nBlockAlign
         let data_block_size: u16 = (header.channels as u16) * (bytes_per_sample as u16);
         writer.write_u16(data_block_size)?;
 
+        // wBitsPerSample
         let bits_per_sample: u16 = bytes_per_sample * 8;
         writer.write_u16(bits_per_sample)?;
+
+        // cbSize
+        writer.write_u16(0)?;
 
         Ok(())
     }
