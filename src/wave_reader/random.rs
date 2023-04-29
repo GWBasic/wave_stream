@@ -1,5 +1,6 @@
 use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom};
 
+use crate::samples_by_channel::SamplesByChannel;
 use crate::OpenWavReader;
 use crate::RandomAccessOpenWavReader;
 use crate::RandomAccessWavReader;
@@ -115,25 +116,149 @@ impl<T> RandomAccessWavReader<T> {
         &self.open_wav
     }
 
-    pub fn read_sample(&mut self, sample: usize, channel: u16) -> Result<T> {
+    pub fn read_sample(&mut self, sample: usize) -> Result<SamplesByChannel<T>> {
         if sample >= self.open_wav.len_samples() {
             return Err(Error::new(ErrorKind::UnexpectedEof, "Sample out of range"));
         }
 
-        if channel >= self.open_wav.num_channels() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
-        }
-
-        let sample_in_channels =
-            (sample * self.open_wav.num_channels() as usize) + channel as usize;
+        let sample_in_channels = sample * self.open_wav.num_channels() as usize;
         let sample_in_bytes = sample_in_channels * self.open_wav.bytes_per_sample() as usize;
         let position = self.open_wav.data_start() + sample_in_bytes;
 
         let seeker = self.open_wav.seeker();
         seeker.seek(SeekFrom::Start(position as u64))?;
 
-        let reader = self.open_wav.reader();
-        (*self.read_sample_from_stream)(reader)
+        // Channels are cloned, because otherwise it holds an immutable borrow of self
+        let channels = self.open_wav.channels().clone();
+
+        Ok(SamplesByChannel {
+            front_left: if channels.front_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_right: if channels.front_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_center: if channels.front_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            low_frequency: if channels.low_frequency {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_left: if channels.back_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_right: if channels.back_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_left_of_center: if channels.front_left_of_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_right_of_center: if channels.front_right_of_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_center: if channels.back_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            side_left: if channels.side_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            side_right: if channels.side_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_center: if channels.top_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_left: if channels.top_front_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_center: if channels.top_front_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_right: if channels.top_front_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_left: if channels.top_back_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_center: if channels.top_back_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_right: if channels.top_back_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+        })
     }
 }
 

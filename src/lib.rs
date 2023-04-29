@@ -447,21 +447,21 @@ mod tests {
         let open_wav = read_wav_from_file_path(path)?;
         let mut wave_reader = get_random_access_reader(open_wav)?;
 
-        let actual_sample = wave_reader.read_sample(0, 0)?;
+        let actual_sample = wave_reader.read_sample(0)?;
         assert_eq!(
-            expected_sample_0, actual_sample,
+            expected_sample_0, actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 0, channel 0"
         );
 
-        let actual_sample = wave_reader.read_sample(1, 0)?;
+        let actual_sample = wave_reader.read_sample(1)?;
         assert_eq!(
-            expected_sample_1, actual_sample,
+            expected_sample_1, actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1, channel 0"
         );
 
-        let actual_sample = wave_reader.read_sample(wave_reader.info().len_samples() - 1, 0)?;
+        let actual_sample = wave_reader.read_sample(wave_reader.info().len_samples() - 1)?;
         assert_eq!(
-            expected_sample_end, actual_sample,
+            expected_sample_end, actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1266, channel 0"
         );
 
@@ -970,15 +970,88 @@ mod tests {
             let mut reader = get_random_access_reader(open_wav)?;
 
             for sample in 0..100usize {
-                for channel in 0..reader.info().num_channels() {
-                    let sample_value = (sample as i32) * 10 + (channel as i32);
-                    let value = reader.read_sample(sample, channel)?;
-                    assert_eq!(
-                        convert_sample_to_write(sample_value),
-                        convert_sample_to_read(value),
-                        "Wrong sample read at {sample}, channel {channel}"
-                    );
-                }
+                let samples_by_channel = reader.read_sample(sample)?;
+
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (0 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_left.expect("front_left")),
+                    "Wrong sample read at {sample}, channel front_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (1 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_right.expect("front_right")),
+                    "Wrong sample read at {sample}, channel front_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (2 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_center.expect("front_center")),
+                    "Wrong sample read at {sample}, channel front_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (3 as i32)),
+                    convert_sample_to_read(samples_by_channel.low_frequency.expect("low_frequency")),
+                    "Wrong sample read at {sample}, channel low_frequency"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (4 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_left.expect("back_left")),
+                    "Wrong sample read at {sample}, channel back_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (5 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_right.expect("back_right")),
+                    "Wrong sample read at {sample}, channel back_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (6 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_left_of_center.expect("front_left_of_center")),
+                    "Wrong sample read at {sample}, channel front_left_of_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (7 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_right_of_center.expect("front_right_of_center")),
+                    "Wrong sample read at {sample}, channel front_right_of_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (8 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_center.expect("back_center")),
+                    "Wrong sample read at {sample}, channel back_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (9 as i32)),
+                    convert_sample_to_read(samples_by_channel.side_left.expect("side_left")),
+                    "Wrong sample read at {sample}, channel side_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (10 as i32)),
+                    convert_sample_to_read(samples_by_channel.side_right.expect("side_right")),
+                    "Wrong sample read at {sample}, channel side_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (11 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_center.expect("top_center")),
+                    "Wrong sample read at {sample}, channel top_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (12 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_front_left.expect("top_front_left")),
+                    "Wrong sample read at {sample}, channel top_front_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (13 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_front_center.expect("top_front_center")),
+                    "Wrong sample read at {sample}, channel top_front_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (14 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_front_right.expect("top_front_right")),
+                    "Wrong sample read at {sample}, channel top_front_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 10 + (15 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_back_left.expect("top_back_left")),
+                    "Wrong sample read at {sample}, channel top_back_left"
+                );
             }
 
             Ok(())
@@ -1139,6 +1212,7 @@ mod tests {
             let mut expected_wav_reader = get_random_access_reader(expected_wav)?;
             let mut actual_wav_reader = get_random_access_reader(actual_wav)?;
 
+            panic!("Incomplete, should implement eq for SamplesByChannel"); /* 
             for sample_ctr in 0..len_samples {
                 for channel_ctr in 0..channels {
                     let expected_sample =
@@ -1147,7 +1221,7 @@ mod tests {
 
                     assert_eq!(expected_sample, actual_sample, "Wrong value for sample");
                 }
-            }
+            }*/
 
             Ok(())
         }));
