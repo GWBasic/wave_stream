@@ -1,6 +1,7 @@
 use std::io::{Error, ErrorKind, Read, Result};
 use std::iter::IntoIterator;
 
+use crate::samples_by_channel::SamplesByChannel;
 use crate::OpenWavReader;
 use crate::ReadEx;
 use crate::SampleFormat;
@@ -101,7 +102,7 @@ impl<T> StreamWavReader<T> {
 }
 
 impl<T> IntoIterator for StreamWavReader<T> {
-    type Item = Result<Vec<T>>;
+    type Item = Result<SamplesByChannel<T>>;
     type IntoIter = StreamWavReaderIterator<T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -113,32 +114,152 @@ impl<T> IntoIterator for StreamWavReader<T> {
     }
 }
 
+impl<T> StreamWavReaderIterator<T> {
+    fn read_samples(&mut self) -> Result<SamplesByChannel<T>> {
+        // Channels are cloned, because otherwise it holds an immutable borrow of self
+        let channels = self.open_wav.channels().clone();
+
+        self.current_sample += 1;
+
+        Ok(SamplesByChannel {
+            front_left: if channels.front_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_right: if channels.front_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_center: if channels.front_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            low_frequency: if channels.low_frequency {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_left: if channels.back_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_right: if channels.back_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_left_of_center: if channels.front_left_of_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            front_right_of_center: if channels.front_right_of_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            back_center: if channels.back_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            side_left: if channels.side_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            side_right: if channels.side_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_center: if channels.top_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_left: if channels.top_front_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_center: if channels.top_front_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_front_right: if channels.top_front_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_left: if channels.top_back_left {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_center: if channels.top_back_center {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+            top_back_right: if channels.top_back_right {
+                Some((*self.read_sample_from_stream)(
+                    &mut self.open_wav.reader(),
+                )?)
+            } else {
+                None
+            },
+        })
+    }
+}
+
 impl<T> Iterator for StreamWavReaderIterator<T> {
-    type Item = Result<Vec<T>>;
+    type Item = Result<SamplesByChannel<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_sample >= self.open_wav.len_samples() {
             None
         } else {
-            let num_channels: usize = self.open_wav.num_channels().into();
-            let mut samples = Vec::new();
-
-            for _channel in 0..num_channels {
-                let read_result = (*self.read_sample_from_stream)(&mut self.open_wav.reader());
-                let sample = match read_result {
-                    Ok(sample) => sample,
-                    Err(err) => {
-                        self.current_sample = u32::MAX as usize;
-                        return Some(Err(err));
-                    }
-                };
-
-                samples.push(sample);
-            }
-
-            self.current_sample += 1;
-
-            Some(Ok(samples))
+            Some(self.read_samples())
         }
     }
 }

@@ -210,7 +210,10 @@ impl WavHeader {
         };
 
         if num_channels != channels.count() {
-            return Err(Error::new(ErrorKind::Unsupported, "Mismatch between number of channels specified in the header, and channel mask"));
+            return Err(Error::new(
+                ErrorKind::Unsupported,
+                "Mismatch between number of channels specified in the header, and channel mask",
+            ));
         }
 
         Ok(WavHeader {

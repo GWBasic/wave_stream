@@ -617,7 +617,8 @@ mod tests {
         let mut current_sample: usize = 0;
 
         let file = File::open(path)?;
-        let reader = BufReader::new(file).take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
+        // calling "take" forces reader to be just a Read, instead of a Read + Seek
+        let reader = BufReader::new(file).take(u64::MAX);
 
         let open_wav = read_wav(reader)?;
 
@@ -625,21 +626,47 @@ mod tests {
         for samples_result in iterator {
             let samples = samples_result?;
 
-            assert_eq!(1, samples.len(), "Wrong number of samples");
+            assert!(samples.front_left.is_some(), "Front left sample not read");
+            assert_eq!(None, samples.front_right, "Sample should not be read");
+            assert_eq!(None, samples.front_center, "Sample should not be read");
+            assert_eq!(None, samples.low_frequency, "Sample should not be read");
+            assert_eq!(None, samples.back_left, "Sample should not be read");
+            assert_eq!(None, samples.back_right, "Sample should not be read");
+            assert_eq!(
+                None, samples.front_left_of_center,
+                "Sample should not be read"
+            );
+            assert_eq!(
+                None, samples.front_right_of_center,
+                "Sample should not be read"
+            );
+            assert_eq!(None, samples.back_center, "Sample should not be read");
+            assert_eq!(None, samples.side_left, "Sample should not be read");
+            assert_eq!(None, samples.side_right, "Sample should not be read");
+            assert_eq!(None, samples.top_center, "Sample should not be read");
+            assert_eq!(None, samples.top_front_left, "Sample should not be read");
+            assert_eq!(None, samples.top_front_center, "Sample should not be read");
+            assert_eq!(None, samples.top_front_right, "Sample should not be read");
+            assert_eq!(None, samples.top_back_left, "Sample should not be read");
+            assert_eq!(None, samples.top_back_center, "Sample should not be read");
+            assert_eq!(None, samples.top_back_right, "Sample should not be read");
 
             if current_sample == 0 {
                 assert_eq!(
-                    expected_sample_0, samples[0],
+                    expected_sample_0,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 0, channel 0"
                 );
             } else if current_sample == 1 {
                 assert_eq!(
-                    expected_sample_1, samples[0],
+                    expected_sample_1,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 1, channel 0"
                 );
             } else if current_sample == 1266 {
                 assert_eq!(
-                    expected_sample_end, samples[0],
+                    expected_sample_end,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 1266, channel 0"
                 );
             }

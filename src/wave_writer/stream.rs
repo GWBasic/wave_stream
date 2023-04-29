@@ -3,7 +3,6 @@ use std::io::{Error, ErrorKind, Result, Seek, SeekFrom, Write};
 use super::OpenWavWriter;
 use super::SampleFormat;
 use super::WriteEx;
-use crate::open_wav::OpenWav;
 use crate::samples_by_channel::SamplesByChannel;
 
 impl OpenWavWriter {
@@ -99,8 +98,6 @@ impl OpenWavWriter {
     where
         TIterator: Iterator<Item = Result<SamplesByChannel<T>>>,
     {
-        let channels = self.num_channels() as usize;
-
         let position = self.data_start as u64;
 
         self.writer.seek(SeekFrom::Start(position as u64))?;
@@ -113,58 +110,146 @@ impl OpenWavWriter {
             let samples_by_channel = samples_result?;
 
             if channels.front_left {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.front_left.expect("Left channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel.front_left.expect("Left channel missing"),
+                )?;
             }
             if channels.front_right {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.front_right.expect("Right channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .front_right
+                        .expect("Right channel missing"),
+                )?;
             }
             if channels.front_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.front_center.expect("Center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .front_center
+                        .expect("Center channel missing"),
+                )?;
             }
             if channels.low_frequency {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.low_frequency.expect("Low frequency channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .low_frequency
+                        .expect("Low frequency channel missing"),
+                )?;
             }
             if channels.back_left {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.back_left.expect("Back left channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .back_left
+                        .expect("Back left channel missing"),
+                )?;
             }
             if channels.back_right {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.back_right.expect("Back right channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .back_right
+                        .expect("Back right channel missing"),
+                )?;
             }
             if channels.front_left_of_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.front_left_of_center.expect("Front left of center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .front_left_of_center
+                        .expect("Front left of center channel missing"),
+                )?;
             }
             if channels.front_right_of_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.front_right_of_center.expect("Front right of center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .front_right_of_center
+                        .expect("Front right of center channel missing"),
+                )?;
             }
             if channels.back_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.back_center.expect("Back center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .back_center
+                        .expect("Back center channel missing"),
+                )?;
             }
             if channels.side_left {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.side_left.expect("Side left channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .side_left
+                        .expect("Side left channel missing"),
+                )?;
             }
             if channels.side_right {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.side_right.expect("Side right channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .side_right
+                        .expect("Side right channel missing"),
+                )?;
             }
             if channels.top_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_center.expect("Top center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_center
+                        .expect("Top center channel missing"),
+                )?;
             }
             if channels.top_front_left {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_front_left.expect("Top front left channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_front_left
+                        .expect("Top front left channel missing"),
+                )?;
             }
             if channels.top_front_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_front_center.expect("Top front center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_front_center
+                        .expect("Top front center channel missing"),
+                )?;
             }
             if channels.top_front_right {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_front_right.expect("Top front right channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_front_right
+                        .expect("Top front right channel missing"),
+                )?;
             }
             if channels.top_back_left {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_back_left.expect("Top back left channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_back_left
+                        .expect("Top back left channel missing"),
+                )?;
             }
             if channels.top_back_center {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_back_center.expect("Top back center channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_back_center
+                        .expect("Top back center channel missing"),
+                )?;
             }
             if channels.top_back_right {
-                write_sample_to_stream(&mut self.writer, samples_by_channel.top_back_right.expect("Top back right channel missing"))?;
+                write_sample_to_stream(
+                    &mut self.writer,
+                    samples_by_channel
+                        .top_back_right
+                        .expect("Top back right channel missing"),
+                )?;
             }
 
             self.samples_written += 1;
