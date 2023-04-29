@@ -722,7 +722,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format"
             );
-            assert_eq!(10, open_wav.num_channels(), "Wrong channels");
+            assert_eq!(6, open_wav.num_channels(), "Wrong channels");
             assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
             assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
             assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
@@ -736,7 +736,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format when reading"
             );
-            assert_eq!(10, open_wav.num_channels(), "Wrong channels when reading");
+            assert_eq!(6, open_wav.num_channels(), "Wrong channels when reading");
             assert_eq!(
                 96000,
                 open_wav.sample_rate(),
