@@ -17,7 +17,8 @@
 //! use std::path::Path;
 //!
 //! use wave_stream::open_wav::OpenWav;
-//! use wave_stream::wave_header::{SampleFormat, WavHeader};
+//! use wave_stream::samples_by_channel::SamplesByChannel;
+//! use wave_stream::wave_header::{Channels, SampleFormat, WavHeader};
 //! use wave_stream::wave_reader::{RandomAccessOpenWavReader, StreamOpenWavReader};
 //! use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
 //!
@@ -27,7 +28,7 @@
 //!     // Inspect metadata
 //!     // ******************************
 //!     println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}",
-//!         open_wav.channels(),
+//!         open_wav.num_channels(),
 //!         open_wav.bits_per_sample(),
 //!         open_wav.sample_rate(),
 //!         open_wav.len_samples());
@@ -35,8 +36,11 @@
 //!     // Read via random access
 //!     // ******************************
 //!     let mut random_access_wave_reader = open_wav.get_random_access_f32_reader().unwrap();
-//!     let first_sample = random_access_wave_reader.read_sample(0, 0).unwrap();
-//!     println!("First sample, channel 0: {0}", first_sample);
+//!     let first_sample = random_access_wave_reader.read_sample(0).unwrap();
+//!     println!(
+//!         "First sample, front_left: {0}",
+//!         first_sample.front_left.expect("front_left missing")
+//!     );
 //!
 //!     // Read via an enumerable: Find the loudest sample in the wave file
 //!     // ******************************
@@ -56,7 +60,7 @@
 //!     for samples_result in iterator {
 //!         let samples = samples_result.unwrap();
 //!
-//!         for sample in samples {
+//!         for sample in samples.to_vec() {
 //!             loudest_sample = f32::max(loudest_sample, sample);
 //!         }
 //!     }
@@ -68,7 +72,26 @@
 //!     let sample_rate = 96000;
 //!     let header = WavHeader {
 //!         sample_format: SampleFormat::Float,
-//!         channels: 1,
+//!         channels: Channels {
+//!             front_left: true,
+//!             front_right: false,
+//!             front_center: false,
+//!             low_frequency: false,
+//!             back_left: false,
+//!             back_right: false,
+//!             front_left_of_center: false,
+//!             front_right_of_center: false,
+//!             back_center: false,
+//!             side_left: false,
+//!             side_right: false,
+//!             top_center: false,
+//!             top_front_left: false,
+//!             top_front_center: false,
+//!             top_front_right: false,
+//!             top_back_left: false,
+//!             top_back_center: false,
+//!             top_back_right: false,
+//!         },
 //!         sample_rate,
 //!     };
 //!
@@ -89,7 +112,29 @@
 //!         let modulo = (sample % samples_in_ramp) as f32;
 //!         let sample_value = (2f32 * modulo / samples_in_ramp_f32) - 1f32;
 //!         random_access_wave_writer
-//!             .write_sample(sample, 0, sample_value)
+//!             .write_samples(
+//!                 sample,
+//!                 SamplesByChannel {
+//!                     front_left: Some(sample_value),
+//!                     front_right: None,
+//!                     front_center: None,
+//!                     low_frequency: None,
+//!                     back_left: None,
+//!                     back_right: None,
+//!                     front_left_of_center: None,
+//!                     front_right_of_center: None,
+//!                     back_center: None,
+//!                     side_left: None,
+//!                     side_right: None,
+//!                     top_center: None,
+//!                     top_front_left: None,
+//!                     top_front_center: None,
+//!                     top_front_right: None,
+//!                     top_back_left: None,
+//!                     top_back_center: None,
+//!                     top_back_right: None,
+//!                 },
+//!             )
 //!             .unwrap();
 //!     }
 //!
@@ -99,7 +144,26 @@
 //!     // ******************************
 //!     let header = WavHeader {
 //!         sample_format: SampleFormat::Float,
-//!         channels: 1,
+//!         channels: Channels {
+//!             front_left: true,
+//!             front_right: false,
+//!             front_center: false,
+//!             low_frequency: false,
+//!             back_left: false,
+//!             back_right: false,
+//!             front_left_of_center: false,
+//!             front_right_of_center: false,
+//!             back_center: false,
+//!             side_left: false,
+//!             side_right: false,
+//!             top_center: false,
+//!             top_front_left: false,
+//!             top_front_center: false,
+//!             top_front_right: false,
+//!             top_back_left: false,
+//!             top_back_center: false,
+//!             top_back_right: false,
+//!         },
 //!         sample_rate,
 //!     };
 //!
@@ -120,9 +184,9 @@
 //!
 //! // Used when writing via iterator
 //! impl Iterator for SineIterator {
-//!     type Item = Result<Vec<f32>>;
+//!     type Item = Result<SamplesByChannel<f32>>;
 //!
-//!     fn next(&mut self) -> Option<Result<Vec<f32>>> {
+//!     fn next(&mut self) -> Option<Result<SamplesByChannel<f32>>> {
 //!         let result = (self.current_sample / self.period * TAU).sin();
 //!         self.current_sample += 1f32;
 //!
@@ -130,10 +194,28 @@
 //!             self.current_sample = 0f32;
 //!         }
 //!
-//!         return Some(Ok(vec![result]));
+//!         return Some(Ok(SamplesByChannel {
+//!             front_left: Some(result),
+//!             front_right: None,
+//!             front_center: None,
+//!             low_frequency: None,
+//!             back_left: None,
+//!             back_right: None,
+//!             front_left_of_center: None,
+//!             front_right_of_center: None,
+//!             back_center: None,
+//!             side_left: None,
+//!             side_right: None,
+//!             top_center: None,
+//!             top_front_left: None,
+//!             top_front_center: None,
+//!             top_front_right: None,
+//!             top_back_left: None,
+//!             top_back_center: None,
+//!             top_back_right: None,
+//!         }));
 //!     }
 //! }
-//!
 //! ```
 
 use std::fs::File;
