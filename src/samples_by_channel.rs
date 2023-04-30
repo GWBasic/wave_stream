@@ -20,7 +20,7 @@ pub struct SamplesByChannel<T> {
     pub top_back_right: Option<T>,
 }
 
-impl<T : Copy> SamplesByChannel<T> {
+impl<T: Copy> SamplesByChannel<T> {
     pub fn to_vec(&self) -> Vec<T> {
         let mut vec = Vec::new();
 
