@@ -19,3 +19,101 @@ pub struct SamplesByChannel<T> {
     pub top_back_center: Option<T>,
     pub top_back_right: Option<T>,
 }
+
+impl<T : Copy> SamplesByChannel<T> {
+    pub fn to_vec(&self) -> Vec<T> {
+        let mut vec = Vec::new();
+
+        match self.front_left {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.front_right {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.front_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.low_frequency {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.back_left {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.back_right {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.front_left_of_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.front_right_of_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.back_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.side_left {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.side_right {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_front_left {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_front_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_front_right {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_back_left {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_back_center {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        match self.top_back_right {
+            Some(sample) => vec.push(sample),
+            None => {}
+        };
+
+        vec
+    }
+}
