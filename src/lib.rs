@@ -1168,8 +1168,6 @@ mod tests {
         )
     }
 
-    // TODO: Is TFile needed
-
     fn write_stream<
         T: Debug + PartialEq + Default + Clone + 'static,
         TFile: Debug + PartialEq + Default + Clone + 'static,
@@ -1207,21 +1205,16 @@ mod tests {
             assert_eq!(expected_wav.len_samples(), actual_wav.len_samples());
 
             let len_samples = expected_wav.len_samples();
-            let channels = expected_wav.num_channels();
 
             let mut expected_wav_reader = get_random_access_reader(expected_wav)?;
             let mut actual_wav_reader = get_random_access_reader(actual_wav)?;
 
-            panic!("Incomplete, should implement eq for SamplesByChannel"); /* 
             for sample_ctr in 0..len_samples {
-                for channel_ctr in 0..channels {
-                    let expected_sample =
-                        expected_wav_reader.read_sample(sample_ctr, channel_ctr)?;
-                    let actual_sample = actual_wav_reader.read_sample(sample_ctr, channel_ctr)?;
+                let expected_samples = expected_wav_reader.read_sample(sample_ctr)?;
+                let actual_samples = actual_wav_reader.read_sample(sample_ctr)?;
 
-                    assert_eq!(expected_sample, actual_sample, "Wrong value for sample");
-                }
-            }*/
+                assert_eq!(expected_samples, actual_samples, "Wrong value for sample {sample_ctr}");
+            }
 
             Ok(())
         }));

@@ -19,8 +19,8 @@ pub enum SampleFormat {
     Float,
 }
 
-// Flags of all of the channels in the file
-#[derive(Debug, Copy, Clone, PartialEq)]
+// Flags of all of the channels present in the file
+#[derive(Debug, Clone, PartialEq)]
 pub struct Channels {
     pub front_left: bool,
     pub front_right: bool,
