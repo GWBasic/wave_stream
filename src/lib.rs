@@ -294,28 +294,102 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 /// ```
 /// use std::path::Path;
 ///
-/// use wave_stream::wave_header::{SampleFormat, WavHeader};
+/// use wave_stream::samples_by_channel::SamplesByChannel;
+/// use wave_stream::wave_header::{Channels, SampleFormat, WavHeader};
 /// use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
 ///
 /// let header = WavHeader {
 ///     sample_format: SampleFormat::Float,
-///     channels: 2,
+///     channels: Channels {
+///             front_left: true,
+///             front_right: true,
+///             front_center: false,
+///             low_frequency: false,
+///             back_left: false,
+///             back_right: false,
+///             front_left_of_center: false,
+///             front_right_of_center: false,
+///             back_center: false,
+///             side_left: false,
+///             side_right: false,
+///             top_center: false,
+///             top_front_left: false,
+///             top_front_center: false,
+///             top_front_right: false,
+///             top_back_left: false,
+///             top_back_center: false,
+///             top_back_right: false,
+///         },
 ///     sample_rate: 96000,
 /// };
 /// let mut open_wav = write_wav_to_file_path(Path::new("some.wav"), header).unwrap();
 /// let mut writer = open_wav.get_random_access_f32_writer().unwrap();
 ///
 /// // Sample 0
-/// writer.write_sample(0, 0, 0.0).unwrap(); // Channel 0
-/// writer.write_sample(0, 1, 0.0).unwrap(); // Channel 1
+/// writer.write_samples(0, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// // Sample 1
-/// writer.write_sample(1, 0, 0.0).unwrap();
-/// writer.write_sample(1, 1, 0.0).unwrap();
+/// writer.write_samples(1, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// // Sample 2
-/// writer.write_sample(2, 0, 0.0).unwrap();
-/// writer.write_sample(3, 1, 0.0).unwrap();
+/// writer.write_samples(2, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// writer.flush().unwrap();
 /// ```
