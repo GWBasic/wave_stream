@@ -42,6 +42,139 @@ pub struct Channels {
     pub top_back_right: bool,
 }
 
+impl Channels {
+    pub fn new() -> Channels {
+        Channels {
+            front_left: false,
+            front_right: false,
+            front_center: false,
+            low_frequency: false,
+            back_left: false,
+            back_right: false,
+            front_left_of_center: false,
+            front_right_of_center: false,
+            back_center: false,
+            side_left: false,
+            side_right: false,
+            top_center: false,
+            top_front_left: false,
+            top_front_center: false,
+            top_front_right: false,
+            top_back_left: false,
+            top_back_center: false,
+            top_back_right: false,
+        }
+    }
+
+    pub fn front_left(mut self) -> Channels {
+        self.front_left = true;
+
+        self
+    }
+
+    pub fn front_right(mut self) -> Channels {
+        self.front_right = true;
+
+        self
+    }
+
+    pub fn front_center(mut self) -> Channels {
+        self.front_center = true;
+
+        self
+    }
+
+    pub fn low_frequency(mut self) -> Channels {
+        self.low_frequency = true;
+
+        self
+    }
+
+    pub fn back_left(mut self) -> Channels {
+        self.back_left = true;
+
+        self
+    }
+
+    pub fn back_right(mut self) -> Channels {
+        self.back_right = true;
+
+        self
+    }
+
+    pub fn front_left_of_center(mut self) -> Channels {
+        self.front_left_of_center = true;
+
+        self
+    }
+
+    pub fn front_right_of_center(mut self) -> Channels {
+        self.front_right_of_center = true;
+
+        self
+    }
+
+    pub fn back_center(mut self) -> Channels {
+        self.back_center = true;
+
+        self
+    }
+
+    pub fn side_left(mut self) -> Channels {
+        self.side_left = true;
+
+        self
+    }
+
+    pub fn side_right(mut self) -> Channels {
+        self.side_right = true;
+
+        self
+    }
+
+    pub fn top_center(mut self) -> Channels {
+        self.top_center = true;
+
+        self
+    }
+
+    pub fn top_front_left(mut self) -> Channels {
+        self.top_front_left = true;
+
+        self
+    }
+
+    pub fn top_front_center(mut self) -> Channels {
+        self.top_front_center = true;
+
+        self
+    }
+
+    pub fn top_front_right(mut self) -> Channels {
+        self.top_front_right = true;
+
+        self
+    }
+
+    pub fn top_back_left(mut self) -> Channels {
+        self.top_back_left = true;
+
+        self
+    }
+
+    pub fn top_back_center(mut self) -> Channels {
+        self.top_back_center = true;
+
+        self
+    }
+
+    pub fn top_back_right(mut self) -> Channels {
+        self.top_back_right = true;
+
+        self
+    }
+}
+
 // Wav file header. Used to specify wav parameters when creating a wav, or to query wav parameters when reading a wav
 pub struct WavHeader {
     /// The sample format

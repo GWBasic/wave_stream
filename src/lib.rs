@@ -852,26 +852,13 @@ mod tests {
         test_with_file(Box::new(|path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Float,
-                channels: Channels {
-                    front_left: true,
-                    front_right: true,
-                    front_center: true,
-                    low_frequency: true,
-                    back_left: true,
-                    back_right: true,
-                    front_left_of_center: false,
-                    front_right_of_center: false,
-                    back_center: false,
-                    side_left: false,
-                    side_right: false,
-                    top_center: false,
-                    top_front_left: false,
-                    top_front_center: false,
-                    top_front_right: false,
-                    top_back_left: false,
-                    top_back_center: false,
-                    top_back_right: false,
-                },
+                channels: Channels::new()
+                    .front_left()
+                    .front_right()
+                    .front_center()
+                    .low_frequency()
+                    .back_left()
+                    .back_right(),
                 sample_rate: 96000,
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
