@@ -149,7 +149,7 @@ pub mod writer;
 
 mod assertions;
 mod constants;
-mod samples_by_channel;
+pub mod samples_by_channel;
 mod upconvert;
 
 use reader::ReadEx;
@@ -449,19 +449,22 @@ mod tests {
 
         let actual_sample = wave_reader.read_sample(0)?;
         assert_eq!(
-            expected_sample_0, actual_sample.front_left.expect("Front left missing"),
+            expected_sample_0,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 0, channel 0"
         );
 
         let actual_sample = wave_reader.read_sample(1)?;
         assert_eq!(
-            expected_sample_1, actual_sample.front_left.expect("Front left missing"),
+            expected_sample_1,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1, channel 0"
         );
 
         let actual_sample = wave_reader.read_sample(wave_reader.info().len_samples() - 1)?;
         assert_eq!(
-            expected_sample_end, actual_sample.front_left.expect("Front left missing"),
+            expected_sample_end,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1266, channel 0"
         );
 
@@ -989,7 +992,9 @@ mod tests {
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (3 as i32)),
-                    convert_sample_to_read(samples_by_channel.low_frequency.expect("low_frequency")),
+                    convert_sample_to_read(
+                        samples_by_channel.low_frequency.expect("low_frequency")
+                    ),
                     "Wrong sample read at {sample}, channel low_frequency"
                 );
                 assert_eq!(
@@ -1004,12 +1009,20 @@ mod tests {
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (6 as i32)),
-                    convert_sample_to_read(samples_by_channel.front_left_of_center.expect("front_left_of_center")),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .front_left_of_center
+                            .expect("front_left_of_center")
+                    ),
                     "Wrong sample read at {sample}, channel front_left_of_center"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (7 as i32)),
-                    convert_sample_to_read(samples_by_channel.front_right_of_center.expect("front_right_of_center")),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .front_right_of_center
+                            .expect("front_right_of_center")
+                    ),
                     "Wrong sample read at {sample}, channel front_right_of_center"
                 );
                 assert_eq!(
@@ -1034,32 +1047,46 @@ mod tests {
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (12 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_front_left.expect("top_front_left")),
+                    convert_sample_to_read(
+                        samples_by_channel.top_front_left.expect("top_front_left")
+                    ),
                     "Wrong sample read at {sample}, channel top_front_left"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (13 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_front_center.expect("top_front_center")),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .top_front_center
+                            .expect("top_front_center")
+                    ),
                     "Wrong sample read at {sample}, channel top_front_center"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (14 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_front_right.expect("top_front_right")),
+                    convert_sample_to_read(
+                        samples_by_channel.top_front_right.expect("top_front_right")
+                    ),
                     "Wrong sample read at {sample}, channel top_front_right"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (15 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_back_left.expect("top_back_left")),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_left.expect("top_back_left")
+                    ),
                     "Wrong sample read at {sample}, channel top_back_left"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (16 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_back_center.expect("top_back_center")),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_center.expect("top_back_center")
+                    ),
                     "Wrong sample read at {sample}, channel top_back_center"
                 );
                 assert_eq!(
                     convert_sample_to_write((sample as i32) * 18 + (17 as i32)),
-                    convert_sample_to_read(samples_by_channel.top_back_right.expect("top_back_right")),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_right.expect("top_back_right")
+                    ),
                     "Wrong sample read at {sample}, channel top_back_right"
                 );
             }
@@ -1223,7 +1250,10 @@ mod tests {
                 let expected_samples = expected_wav_reader.read_sample(sample_ctr)?;
                 let actual_samples = actual_wav_reader.read_sample(sample_ctr)?;
 
-                assert_eq!(expected_samples, actual_samples, "Wrong value for sample {sample_ctr}");
+                assert_eq!(
+                    expected_samples, actual_samples,
+                    "Wrong value for sample {sample_ctr}"
+                );
             }
 
             Ok(())
