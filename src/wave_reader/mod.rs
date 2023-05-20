@@ -1,6 +1,7 @@
 use std::io::{Read, Result};
 
 use crate::open_wav::OpenWav;
+use crate::wave_header::Channels;
 use crate::ReadEx;
 use crate::SampleFormat;
 use crate::WavHeader;
@@ -18,8 +19,12 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
         self.header.sample_format
     }
 
-    fn channels(&self) -> u16 {
-        self.header.channels
+    fn num_channels(&self) -> u16 {
+        self.header.channels.count()
+    }
+
+    fn channels(&self) -> &Channels {
+        &self.header.channels
     }
 
     fn sample_rate(&self) -> u32 {
@@ -40,7 +45,9 @@ impl<TReader: Read> OpenWav for OpenWavReader<TReader> {
     }
 
     fn len_samples(&self) -> usize {
-        self.data_length / (self.bytes_per_sample() as usize) / (self.header.channels as usize)
+        self.data_length
+            / (self.bytes_per_sample() as usize)
+            / (self.header.channels.count() as usize)
     }
 }
 
@@ -127,13 +134,13 @@ pub struct RandomAccessWavReader<T> {
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
-/// An open streaming wav reader. Samples must be read in a sequential manner
+// An open streaming wav reader. Samples must be read in a sequential manner
 pub struct StreamWavReader<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,
 }
 
-/// An open streaming wav reader. Samples must be read in a sequential manner
+// An open streaming wav reader. Samples must be read in a sequential manner
 pub struct StreamWavReaderIterator<T> {
     open_wav: Box<dyn StreamOpenWavReader>,
     read_sample_from_stream: Box<ReadSampleFromStream<T>>,

@@ -17,7 +17,8 @@
 //! use std::path::Path;
 //!
 //! use wave_stream::open_wav::OpenWav;
-//! use wave_stream::wave_header::{SampleFormat, WavHeader};
+//! use wave_stream::samples_by_channel::SamplesByChannel;
+//! use wave_stream::wave_header::{Channels, SampleFormat, WavHeader};
 //! use wave_stream::wave_reader::{RandomAccessOpenWavReader, StreamOpenWavReader};
 //! use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
 //!
@@ -27,7 +28,7 @@
 //!     // Inspect metadata
 //!     // ******************************
 //!     println!("Number of channels: {0}, samples per second: {1}, bits per sample: {2}, length in samples: {3}",
-//!         open_wav.channels(),
+//!         open_wav.num_channels(),
 //!         open_wav.bits_per_sample(),
 //!         open_wav.sample_rate(),
 //!         open_wav.len_samples());
@@ -35,8 +36,11 @@
 //!     // Read via random access
 //!     // ******************************
 //!     let mut random_access_wave_reader = open_wav.get_random_access_f32_reader().unwrap();
-//!     let first_sample = random_access_wave_reader.read_sample(0, 0).unwrap();
-//!     println!("First sample, channel 0: {0}", first_sample);
+//!     let first_sample = random_access_wave_reader.read_sample(0).unwrap();
+//!     println!(
+//!         "First sample, front_left: {0}",
+//!         first_sample.front_left.expect("front_left missing")
+//!     );
 //!
 //!     // Read via an enumerable: Find the loudest sample in the wave file
 //!     // ******************************
@@ -56,7 +60,7 @@
 //!     for samples_result in iterator {
 //!         let samples = samples_result.unwrap();
 //!
-//!         for sample in samples {
+//!         for sample in samples.to_vec() {
 //!             loudest_sample = f32::max(loudest_sample, sample);
 //!         }
 //!     }
@@ -68,7 +72,8 @@
 //!     let sample_rate = 96000;
 //!     let header = WavHeader {
 //!         sample_format: SampleFormat::Float,
-//!         channels: 1,
+//!         channels: Channels::new()
+//!             .front_left(),
 //!         sample_rate,
 //!     };
 //!
@@ -89,7 +94,10 @@
 //!         let modulo = (sample % samples_in_ramp) as f32;
 //!         let sample_value = (2f32 * modulo / samples_in_ramp_f32) - 1f32;
 //!         random_access_wave_writer
-//!             .write_sample(sample, 0, sample_value)
+//!             .write_samples(
+//!                 sample,
+//!                 SamplesByChannel::new()
+//!                     .front_left(sample_value))
 //!             .unwrap();
 //!     }
 //!
@@ -99,7 +107,8 @@
 //!     // ******************************
 //!     let header = WavHeader {
 //!         sample_format: SampleFormat::Float,
-//!         channels: 1,
+//!         channels: Channels::new()
+//!             .front_left(),
 //!         sample_rate,
 //!     };
 //!
@@ -120,9 +129,9 @@
 //!
 //! // Used when writing via iterator
 //! impl Iterator for SineIterator {
-//!     type Item = Result<Vec<f32>>;
+//!     type Item = Result<SamplesByChannel<f32>>;
 //!
-//!     fn next(&mut self) -> Option<Result<Vec<f32>>> {
+//!     fn next(&mut self) -> Option<Result<SamplesByChannel<f32>>> {
 //!         let result = (self.current_sample / self.period * TAU).sin();
 //!         self.current_sample += 1f32;
 //!
@@ -130,7 +139,8 @@
 //!             self.current_sample = 0f32;
 //!         }
 //!
-//!         return Some(Ok(vec![result]));
+//!         return Some(Ok(SamplesByChannel::new()
+//!             .front_left(result)));
 //!     }
 //! }
 //!
@@ -149,6 +159,7 @@ pub mod writer;
 
 mod assertions;
 mod constants;
+pub mod samples_by_channel;
 mod upconvert;
 
 use reader::ReadEx;
@@ -211,28 +222,102 @@ pub fn read_wav<TReader: 'static + Read>(mut reader: TReader) -> Result<OpenWavR
 /// ```
 /// use std::path::Path;
 ///
-/// use wave_stream::wave_header::{SampleFormat, WavHeader};
+/// use wave_stream::samples_by_channel::SamplesByChannel;
+/// use wave_stream::wave_header::{Channels, SampleFormat, WavHeader};
 /// use wave_stream::{read_wav_from_file_path, write_wav_to_file_path};
 ///
 /// let header = WavHeader {
 ///     sample_format: SampleFormat::Float,
-///     channels: 2,
+///     channels: Channels {
+///             front_left: true,
+///             front_right: true,
+///             front_center: false,
+///             low_frequency: false,
+///             back_left: false,
+///             back_right: false,
+///             front_left_of_center: false,
+///             front_right_of_center: false,
+///             back_center: false,
+///             side_left: false,
+///             side_right: false,
+///             top_center: false,
+///             top_front_left: false,
+///             top_front_center: false,
+///             top_front_right: false,
+///             top_back_left: false,
+///             top_back_center: false,
+///             top_back_right: false,
+///         },
 ///     sample_rate: 96000,
 /// };
 /// let mut open_wav = write_wav_to_file_path(Path::new("some.wav"), header).unwrap();
 /// let mut writer = open_wav.get_random_access_f32_writer().unwrap();
 ///
 /// // Sample 0
-/// writer.write_sample(0, 0, 0.0).unwrap(); // Channel 0
-/// writer.write_sample(0, 1, 0.0).unwrap(); // Channel 1
+/// writer.write_samples(0, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// // Sample 1
-/// writer.write_sample(1, 0, 0.0).unwrap();
-/// writer.write_sample(1, 1, 0.0).unwrap();
+/// writer.write_samples(1, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// // Sample 2
-/// writer.write_sample(2, 0, 0.0).unwrap();
-/// writer.write_sample(3, 1, 0.0).unwrap();
+/// writer.write_samples(2, SamplesByChannel {
+///             front_left: Some(0.0),
+///             front_right: Some(0.0),
+///             front_center: None,
+///             low_frequency: None,
+///             back_left: None,
+///             back_right: None,
+///             front_left_of_center: None,
+///             front_right_of_center: None,
+///             back_center: None,
+///             side_left: None,
+///             side_right: None,
+///             top_center: None,
+///             top_front_left: None,
+///             top_front_center: None,
+///             top_front_right: None,
+///             top_back_left: None,
+///             top_back_center: None,
+///             top_back_right: None,
+///         }).unwrap();
 ///
 /// writer.flush().unwrap();
 /// ```
@@ -270,6 +355,7 @@ mod tests {
 
     use super::*;
     use crate::open_wav::OpenWav;
+    use crate::samples_by_channel::SamplesByChannel;
     use crate::upconvert::{
         INT_16_DIVIDE_FOR_FLOAT, INT_24_DIVIDE_FOR_FLOAT, INT_8_ADD_FOR_FLOAT_ABS,
         INT_8_DIVIDE_FOR_FLOAT,
@@ -279,21 +365,21 @@ mod tests {
     fn open_sanity() {
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_float.wav")).unwrap();
         assert_eq!(SampleFormat::Float, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(32, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_24.wav")).unwrap();
         assert_eq!(SampleFormat::Int24, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(24, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
 
         let open_wav = read_wav_from_file_path(Path::new("test_data/short_16.wav")).unwrap();
         assert_eq!(SampleFormat::Int16, open_wav.sample_format());
-        assert_eq!(1, open_wav.channels());
+        assert_eq!(1, open_wav.num_channels());
         assert_eq!(16, open_wav.bits_per_sample());
         assert_eq!(48000, open_wav.sample_rate());
         assert_eq!(1267, open_wav.len_samples());
@@ -307,7 +393,7 @@ mod tests {
             SampleFormat::Float,
             wave_reader_float.info().sample_format()
         );
-        assert_eq!(1, wave_reader_float.info().channels());
+        assert_eq!(1, wave_reader_float.info().num_channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
@@ -445,21 +531,24 @@ mod tests {
         let open_wav = read_wav_from_file_path(path)?;
         let mut wave_reader = get_random_access_reader(open_wav)?;
 
-        let actual_sample = wave_reader.read_sample(0, 0)?;
+        let actual_sample = wave_reader.read_sample(0)?;
         assert_eq!(
-            expected_sample_0, actual_sample,
+            expected_sample_0,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 0, channel 0"
         );
 
-        let actual_sample = wave_reader.read_sample(1, 0)?;
+        let actual_sample = wave_reader.read_sample(1)?;
         assert_eq!(
-            expected_sample_1, actual_sample,
+            expected_sample_1,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1, channel 0"
         );
 
-        let actual_sample = wave_reader.read_sample(wave_reader.info().len_samples() - 1, 0)?;
+        let actual_sample = wave_reader.read_sample(wave_reader.info().len_samples() - 1)?;
         assert_eq!(
-            expected_sample_end, actual_sample,
+            expected_sample_end,
+            actual_sample.front_left.expect("Front left missing"),
             "Wrong sample read at sample 1266, channel 0"
         );
 
@@ -477,7 +566,7 @@ mod tests {
             SampleFormat::Float,
             wave_reader_float.info().sample_format()
         );
-        assert_eq!(1, wave_reader_float.info().channels());
+        assert_eq!(1, wave_reader_float.info().num_channels());
         assert_eq!(32, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
         assert_eq!(1267, wave_reader_float.info().len_samples());
@@ -615,7 +704,8 @@ mod tests {
         let mut current_sample: usize = 0;
 
         let file = File::open(path)?;
-        let reader = BufReader::new(file).take(u64::MAX); // calling "take" forces reader to be just a Read, instead of a Read + Seek
+        // calling "take" forces reader to be just a Read, instead of a Read + Seek
+        let reader = BufReader::new(file).take(u64::MAX);
 
         let open_wav = read_wav(reader)?;
 
@@ -623,21 +713,47 @@ mod tests {
         for samples_result in iterator {
             let samples = samples_result?;
 
-            assert_eq!(1, samples.len(), "Wrong number of samples");
+            assert!(samples.front_left.is_some(), "Front left sample not read");
+            assert_eq!(None, samples.front_right, "Sample should not be read");
+            assert_eq!(None, samples.front_center, "Sample should not be read");
+            assert_eq!(None, samples.low_frequency, "Sample should not be read");
+            assert_eq!(None, samples.back_left, "Sample should not be read");
+            assert_eq!(None, samples.back_right, "Sample should not be read");
+            assert_eq!(
+                None, samples.front_left_of_center,
+                "Sample should not be read"
+            );
+            assert_eq!(
+                None, samples.front_right_of_center,
+                "Sample should not be read"
+            );
+            assert_eq!(None, samples.back_center, "Sample should not be read");
+            assert_eq!(None, samples.side_left, "Sample should not be read");
+            assert_eq!(None, samples.side_right, "Sample should not be read");
+            assert_eq!(None, samples.top_center, "Sample should not be read");
+            assert_eq!(None, samples.top_front_left, "Sample should not be read");
+            assert_eq!(None, samples.top_front_center, "Sample should not be read");
+            assert_eq!(None, samples.top_front_right, "Sample should not be read");
+            assert_eq!(None, samples.top_back_left, "Sample should not be read");
+            assert_eq!(None, samples.top_back_center, "Sample should not be read");
+            assert_eq!(None, samples.top_back_right, "Sample should not be read");
 
             if current_sample == 0 {
                 assert_eq!(
-                    expected_sample_0, samples[0],
+                    expected_sample_0,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 0, channel 0"
                 );
             } else if current_sample == 1 {
                 assert_eq!(
-                    expected_sample_1, samples[0],
+                    expected_sample_1,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 1, channel 0"
                 );
             } else if current_sample == 1266 {
                 assert_eq!(
-                    expected_sample_end, samples[0],
+                    expected_sample_end,
+                    samples.front_left.unwrap(),
                     "Wrong sample read at sample 1266, channel 0"
                 );
             }
@@ -664,7 +780,13 @@ mod tests {
         test_with_file(Box::new(|path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Float,
-                channels: 10,
+                channels: Channels::new()
+                    .front_left()
+                    .front_right()
+                    .front_center()
+                    .low_frequency()
+                    .back_left()
+                    .back_right(),
                 sample_rate: 96000,
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
@@ -674,7 +796,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format"
             );
-            assert_eq!(10, open_wav.channels(), "Wrong channels");
+            assert_eq!(6, open_wav.num_channels(), "Wrong channels");
             assert_eq!(96000, open_wav.sample_rate(), "Wrong sampling rate");
             assert_eq!(4, open_wav.bytes_per_sample(), "Wrong bytes per sample");
             assert_eq!(32, open_wav.bits_per_sample(), "Wrong bits per sample");
@@ -688,7 +810,7 @@ mod tests {
                 open_wav.sample_format(),
                 "Wrong sample format when reading"
             );
-            assert_eq!(10, open_wav.channels(), "Wrong channels when reading");
+            assert_eq!(6, open_wav.num_channels(), "Wrong channels when reading");
             assert_eq!(
                 96000,
                 open_wav.sample_rate(),
@@ -863,7 +985,26 @@ mod tests {
         test_with_file(Box::new(move |path| {
             let header = WavHeader {
                 sample_format,
-                channels: 10,
+                channels: Channels {
+                    front_left: true,
+                    front_right: true,
+                    front_center: true,
+                    low_frequency: true,
+                    back_left: true,
+                    back_right: true,
+                    front_left_of_center: true,
+                    front_right_of_center: true,
+                    back_center: true,
+                    side_left: true,
+                    side_right: true,
+                    top_center: true,
+                    top_front_left: true,
+                    top_front_center: true,
+                    top_front_right: true,
+                    top_back_left: true,
+                    top_back_center: true,
+                    top_back_right: true,
+                },
                 sample_rate: 96000,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
@@ -871,10 +1012,28 @@ mod tests {
 
             for sample_inv in 0..100usize {
                 let sample = 99 - sample_inv;
-                for channel in 0..writer.info().channels() {
-                    let sample_value = (sample as i32) * 10 + (channel as i32);
-                    writer.write_sample(sample, channel, convert_sample_to_write(sample_value))?;
-                }
+                let sample_value = (sample as i32) * 18;
+                let samples_by_channel = SamplesByChannel::<T> {
+                    front_left: Some(convert_sample_to_write(sample_value + 0i32)),
+                    front_right: Some(convert_sample_to_write(sample_value + 1)),
+                    front_center: Some(convert_sample_to_write(sample_value + 2)),
+                    low_frequency: Some(convert_sample_to_write(sample_value + 3)),
+                    back_left: Some(convert_sample_to_write(sample_value + 4)),
+                    back_right: Some(convert_sample_to_write(sample_value + 5)),
+                    front_left_of_center: Some(convert_sample_to_write(sample_value + 6)),
+                    front_right_of_center: Some(convert_sample_to_write(sample_value + 7)),
+                    back_center: Some(convert_sample_to_write(sample_value + 8)),
+                    side_left: Some(convert_sample_to_write(sample_value + 9)),
+                    side_right: Some(convert_sample_to_write(sample_value + 10)),
+                    top_center: Some(convert_sample_to_write(sample_value + 11)),
+                    top_front_left: Some(convert_sample_to_write(sample_value + 12)),
+                    top_front_center: Some(convert_sample_to_write(sample_value + 13)),
+                    top_front_right: Some(convert_sample_to_write(sample_value + 14)),
+                    top_back_left: Some(convert_sample_to_write(sample_value + 15)),
+                    top_back_center: Some(convert_sample_to_write(sample_value + 16)),
+                    top_back_right: Some(convert_sample_to_write(sample_value + 17)),
+                };
+                writer.write_samples(sample, samples_by_channel)?;
             }
 
             writer.flush()?;
@@ -885,15 +1044,122 @@ mod tests {
             let mut reader = get_random_access_reader(open_wav)?;
 
             for sample in 0..100usize {
-                for channel in 0..reader.info().channels() {
-                    let sample_value = (sample as i32) * 10 + (channel as i32);
-                    let value = reader.read_sample(sample, channel)?;
-                    assert_eq!(
-                        convert_sample_to_write(sample_value),
-                        convert_sample_to_read(value),
-                        "Wrong sample read at {sample}, channel {channel}"
-                    );
-                }
+                let samples_by_channel = reader.read_sample(sample)?;
+
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (0 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_left.expect("front_left")),
+                    "Wrong sample read at {sample}, channel front_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (1 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_right.expect("front_right")),
+                    "Wrong sample read at {sample}, channel front_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (2 as i32)),
+                    convert_sample_to_read(samples_by_channel.front_center.expect("front_center")),
+                    "Wrong sample read at {sample}, channel front_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (3 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.low_frequency.expect("low_frequency")
+                    ),
+                    "Wrong sample read at {sample}, channel low_frequency"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (4 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_left.expect("back_left")),
+                    "Wrong sample read at {sample}, channel back_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (5 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_right.expect("back_right")),
+                    "Wrong sample read at {sample}, channel back_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (6 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .front_left_of_center
+                            .expect("front_left_of_center")
+                    ),
+                    "Wrong sample read at {sample}, channel front_left_of_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (7 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .front_right_of_center
+                            .expect("front_right_of_center")
+                    ),
+                    "Wrong sample read at {sample}, channel front_right_of_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (8 as i32)),
+                    convert_sample_to_read(samples_by_channel.back_center.expect("back_center")),
+                    "Wrong sample read at {sample}, channel back_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (9 as i32)),
+                    convert_sample_to_read(samples_by_channel.side_left.expect("side_left")),
+                    "Wrong sample read at {sample}, channel side_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (10 as i32)),
+                    convert_sample_to_read(samples_by_channel.side_right.expect("side_right")),
+                    "Wrong sample read at {sample}, channel side_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (11 as i32)),
+                    convert_sample_to_read(samples_by_channel.top_center.expect("top_center")),
+                    "Wrong sample read at {sample}, channel top_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (12 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.top_front_left.expect("top_front_left")
+                    ),
+                    "Wrong sample read at {sample}, channel top_front_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (13 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel
+                            .top_front_center
+                            .expect("top_front_center")
+                    ),
+                    "Wrong sample read at {sample}, channel top_front_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (14 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.top_front_right.expect("top_front_right")
+                    ),
+                    "Wrong sample read at {sample}, channel top_front_right"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (15 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_left.expect("top_back_left")
+                    ),
+                    "Wrong sample read at {sample}, channel top_back_left"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (16 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_center.expect("top_back_center")
+                    ),
+                    "Wrong sample read at {sample}, channel top_back_center"
+                );
+                assert_eq!(
+                    convert_sample_to_write((sample as i32) * 18 + (17 as i32)),
+                    convert_sample_to_read(
+                        samples_by_channel.top_back_right.expect("top_back_right")
+                    ),
+                    "Wrong sample read at {sample}, channel top_back_right"
+                );
             }
 
             Ok(())
@@ -1010,8 +1276,6 @@ mod tests {
         )
     }
 
-    // TODO: Is TFile needed
-
     fn write_stream<
         T: Debug + PartialEq + Default + Clone + 'static,
         TFile: Debug + PartialEq + Default + Clone + 'static,
@@ -1034,7 +1298,7 @@ mod tests {
 
             let header = WavHeader {
                 sample_format,
-                channels: source_wav.channels(),
+                channels: source_wav.channels().clone(),
                 sample_rate: source_wav.sample_rate(),
             };
             let open_wav = write_wav_to_file_path(path, header)?;
@@ -1045,23 +1309,22 @@ mod tests {
             let expected_wav = read_wav_from_file_path(read_path)?;
             let actual_wav = read_wav_from_file_path(path)?;
 
-            assert_eq!(expected_wav.channels(), actual_wav.channels());
+            assert_eq!(expected_wav.num_channels(), actual_wav.num_channels());
             assert_eq!(expected_wav.len_samples(), actual_wav.len_samples());
 
             let len_samples = expected_wav.len_samples();
-            let channels = expected_wav.channels();
 
             let mut expected_wav_reader = get_random_access_reader(expected_wav)?;
             let mut actual_wav_reader = get_random_access_reader(actual_wav)?;
 
             for sample_ctr in 0..len_samples {
-                for channel_ctr in 0..channels {
-                    let expected_sample =
-                        expected_wav_reader.read_sample(sample_ctr, channel_ctr)?;
-                    let actual_sample = actual_wav_reader.read_sample(sample_ctr, channel_ctr)?;
+                let expected_samples = expected_wav_reader.read_sample(sample_ctr)?;
+                let actual_samples = actual_wav_reader.read_sample(sample_ctr)?;
 
-                    assert_eq!(expected_sample, actual_sample, "Wrong value for sample");
-                }
+                assert_eq!(
+                    expected_samples, actual_samples,
+                    "Wrong value for sample {sample_ctr}"
+                );
             }
 
             Ok(())

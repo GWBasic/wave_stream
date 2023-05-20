@@ -5,6 +5,7 @@ use super::RandomAccessWavWriter;
 use super::SampleFormat;
 use super::WriteEx;
 use crate::open_wav::OpenWav;
+use crate::samples_by_channel::SamplesByChannel;
 
 impl OpenWavWriter {
     pub fn get_random_access_i8_writer(self) -> Result<RandomAccessWavWriter<i8>> {
@@ -105,18 +106,18 @@ impl<T> RandomAccessWavWriter<T> {
         &(self.open_wav)
     }
 
-    pub fn write_sample(&mut self, sample: usize, channel: u16, value: T) -> Result<()> {
-        if channel >= self.open_wav.channels() {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "Channel out of range"));
-        }
-
+    pub fn write_samples(
+        &mut self,
+        sample: usize,
+        samples_by_channel: SamplesByChannel<T>,
+    ) -> Result<()> {
         // Pad the file if needed
         if sample >= self.open_wav.samples_written {
             self.open_wav.writer.seek(SeekFrom::End(0))?;
 
             let samples_to_pad = (sample + 1) - self.open_wav.samples_written;
             let padding_size = samples_to_pad
-                * (self.open_wav.channels() * self.open_wav.bytes_per_sample()) as usize;
+                * (self.open_wav.num_channels() * self.open_wav.bytes_per_sample()) as usize;
             let padding = vec![0u8; 1];
             for _ in 0..padding_size {
                 self.open_wav.writer.write(&padding)?;
@@ -124,7 +125,7 @@ impl<T> RandomAccessWavWriter<T> {
             self.open_wav.samples_written = sample + 1;
         }
 
-        let sample_in_channels = (sample * self.open_wav.channels() as usize) + channel as usize;
+        let sample_in_channels = sample * self.open_wav.num_channels() as usize;
         let sample_in_bytes =
             (sample_in_channels as u64) * (self.open_wav.bytes_per_sample() as u64);
         let position = (self.open_wav.data_start as u64) + sample_in_bytes;
@@ -134,7 +135,152 @@ impl<T> RandomAccessWavWriter<T> {
             .seek(SeekFrom::Start(position as u64))?;
 
         self.open_wav.chunk_size_written = false;
-        (*self.write_sample_to_stream)(&mut self.open_wav.writer, value)
+
+        let channels = self.open_wav.channels().clone();
+        if channels.front_left {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel.front_left.expect("Left channel missing"),
+            )?;
+        }
+        if channels.front_right {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .front_right
+                    .expect("Right channel missing"),
+            )?;
+        }
+        if channels.front_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .front_center
+                    .expect("Center channel missing"),
+            )?;
+        }
+        if channels.low_frequency {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .low_frequency
+                    .expect("Low frequency channel missing"),
+            )?;
+        }
+        if channels.back_left {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .back_left
+                    .expect("Back left channel missing"),
+            )?;
+        }
+        if channels.back_right {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .back_right
+                    .expect("Back right channel missing"),
+            )?;
+        }
+        if channels.front_left_of_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .front_left_of_center
+                    .expect("Front left of center channel missing"),
+            )?;
+        }
+        if channels.front_right_of_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .front_right_of_center
+                    .expect("Front right of center channel missing"),
+            )?;
+        }
+        if channels.back_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .back_center
+                    .expect("Back center channel missing"),
+            )?;
+        }
+        if channels.side_left {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .side_left
+                    .expect("Side left channel missing"),
+            )?;
+        }
+        if channels.side_right {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .side_right
+                    .expect("Side right channel missing"),
+            )?;
+        }
+        if channels.top_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_center
+                    .expect("Top center channel missing"),
+            )?;
+        }
+        if channels.top_front_left {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_front_left
+                    .expect("Top front left channel missing"),
+            )?;
+        }
+        if channels.top_front_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_front_center
+                    .expect("Top front center channel missing"),
+            )?;
+        }
+        if channels.top_front_right {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_front_right
+                    .expect("Top front right channel missing"),
+            )?;
+        }
+        if channels.top_back_left {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_back_left
+                    .expect("Top back left channel missing"),
+            )?;
+        }
+        if channels.top_back_center {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_back_center
+                    .expect("Top back center channel missing"),
+            )?;
+        }
+        if channels.top_back_right {
+            (*self.write_sample_to_stream)(
+                &mut self.open_wav.writer,
+                samples_by_channel
+                    .top_back_right
+                    .expect("Top back right channel missing"),
+            )?;
+        }
+
+        Ok(())
     }
 
     pub fn flush(&mut self) -> Result<()> {
