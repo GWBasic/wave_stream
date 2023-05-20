@@ -1,7 +1,7 @@
 [package]
 name = "wave_stream"
 description = "Wave file reader and writer. Random access and streaming is supported for reading, random access is supported for writing"
-version = "0.3"
+version = "0.3.0"
 edition = "2021"
 authors = ["Andrew Rondeau <git@andrewrondeau.com>"]
 keywords = ["wav", "wave", "audio", "sound", "dsp"]
