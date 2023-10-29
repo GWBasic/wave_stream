@@ -1409,7 +1409,7 @@ mod tests {
 
     #[test]
     fn write_stream_max_samples() {
-        test_with_file(Box::new(move |path| {
+        test_with_file(Box::new(move |_path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Int8,
                 channels: Channels {
