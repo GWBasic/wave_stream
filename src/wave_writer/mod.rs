@@ -34,7 +34,7 @@ impl OpenWavWriter {
     /// * 'writer' - The (Write + Seek) struct to write the wav into. It is strongly recommended that this struct implement some form of buffering, such as via a BufWriter
     /// * 'header' - The header that represents the desired sampling rate and bit depth
     pub fn new<TWriter: 'static + WriteSeek>(
-        mut writer: TWriter,
+        writer: TWriter,
         header: WavHeader,
     ) -> Result<OpenWavWriter> {
         let max_samples = calculate_max_samples(&header.channels, header.sample_format);
