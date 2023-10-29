@@ -37,9 +37,6 @@ impl OpenWavWriter {
         mut writer: TWriter,
         header: WavHeader,
     ) -> Result<OpenWavWriter> {
-        writer.write_str("data")?;
-        writer.write_u32(0)?;
-
         let max_samples = calculate_max_samples(&header.channels, header.sample_format);
 
         return OpenWavWriter::new_max_samples(writer, header, max_samples);
