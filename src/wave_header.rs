@@ -210,7 +210,6 @@ pub struct WavHeader {
     // Note: This may be needed to signal that a wav is an oddball bits per second: 12, 20, ect
     // (Samples are always aligned on the byte, IE, that's why 8-bit, 16-bit, and 24-bit int, and 32-bit float are supported)
     //pub bits_per_sample: u16
-    pub max_samples: usize,
 }
 
 impl WavHeader {
@@ -300,13 +299,10 @@ impl WavHeader {
             top_back_right: num_channels >= 18,
         };
 
-        let max_samples = calculate_max_samples(&channels, sample_format);
-
         Ok(WavHeader {
             sample_format,
             channels,
             sample_rate,
-            max_samples,
         })
     }
 
@@ -379,13 +375,10 @@ impl WavHeader {
             ));
         }
 
-        let max_samples = calculate_max_samples(&channels, sample_format);
-
         Ok(WavHeader {
             sample_format,
             channels,
             sample_rate,
-            max_samples,
         })
     }
 

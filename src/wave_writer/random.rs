@@ -111,7 +111,7 @@ impl<T> RandomAccessWavWriter<T> {
         sample: usize,
         samples_by_channel: SamplesByChannel<T>,
     ) -> Result<()> {
-        if sample >= self.open_wav.header.max_samples {
+        if sample >= self.open_wav.max_samples {
             return Err(Error::new(
                 ErrorKind::Unsupported,
                 "Wav files can only go up to 4GB.",

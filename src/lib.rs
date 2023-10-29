@@ -353,7 +353,7 @@ pub fn write_wav<TWriter: 'static + Write + Seek>(
 mod tests {
     use std::fmt::Debug;
     use std::i8;
-    use std::io::Take;
+    use std::io::{Take, Cursor};
 
     use tempfile::tempdir;
 
@@ -792,7 +792,6 @@ mod tests {
                     .back_left()
                     .back_right(),
                 sample_rate: 96000,
-                max_samples: 9600,
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
 
@@ -1011,7 +1010,6 @@ mod tests {
                     top_back_right: true,
                 },
                 sample_rate: 96000,
-                max_samples: 9600,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
             let mut writer = get_random_access_writer(open_wav)?;
@@ -1174,7 +1172,7 @@ mod tests {
 
     #[test]
     fn write_random_max_samples() {
-        test_with_file(Box::new(move |path| {
+        test_with_file(Box::new(move |_path| {
             let header = WavHeader {
                 sample_format: SampleFormat::Int8,
                 channels: Channels {
@@ -1198,9 +1196,12 @@ mod tests {
                     top_back_right: false,
                 },
                 sample_rate: 96000,
-                max_samples: 1,
             };
-            let open_wav = write_wav_to_file_path(path, header)?;
+
+            //let open_wav = write_wav_to_file_path(path, header)?;
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header, 1)?;
             let mut writer = open_wav.get_random_access_i8_writer()?;
 
             let samples_by_channel = SamplesByChannel::<i8> {
@@ -1375,7 +1376,6 @@ mod tests {
                 sample_format,
                 channels: source_wav.channels().clone(),
                 sample_rate: source_wav.sample_rate(),
-                max_samples: 9600,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
 
@@ -1433,7 +1433,6 @@ mod tests {
                     top_back_right: false,
                 },
                 sample_rate: 96000,
-                max_samples: 1,
             };
 
             let samples_by_channel = SamplesByChannel::<i8> {
@@ -1458,12 +1457,16 @@ mod tests {
             };
 
             // (Should work) Write a 1-sample file
-            let open_wav = write_wav_to_file_path(path, header.clone())?;
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header.clone(), 1)?;
             let samples = vec![Ok(samples_by_channel.clone())];
             open_wav.write_all_i8(samples.into_iter())?;
 
             // (Should fail) Write a 2-sample file
-            let open_wav = write_wav_to_file_path(path, header.clone())?;
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header.clone(), 1)?;
             let samples = vec![
                 Ok(samples_by_channel.clone()),
                 Ok(samples_by_channel.clone()),
@@ -1474,7 +1477,9 @@ mod tests {
             assert_eq!(ErrorKind::Unsupported, err.kind());
 
             // (Should fail) Write a 3-sample file
-            let open_wav = write_wav_to_file_path(path, header)?;
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header, 1)?;
             let samples = vec![
                 Ok(samples_by_channel.clone()),
                 Ok(samples_by_channel.clone()),

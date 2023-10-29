@@ -1,5 +1,6 @@
 use std::io::{Result, Seek, SeekFrom, Write};
 
+use crate::calculate_max_samples;
 use crate::open_wav::OpenWav;
 use crate::wave_header::Channels;
 use crate::SampleFormat;
@@ -18,6 +19,7 @@ pub struct OpenWavWriter {
     data_start: usize,
     chunk_size_written: bool,
     samples_written: usize,
+    max_samples: usize,
 }
 
 /// An open random access wav writer
@@ -38,6 +40,20 @@ impl OpenWavWriter {
         writer.write_str("data")?;
         writer.write_u32(0)?;
 
+        let max_samples = calculate_max_samples(&header.channels, header.sample_format);
+
+        return OpenWavWriter::new_max_samples(writer, header, max_samples);
+    }
+
+    /// Intended to support testing max_samples
+    pub(crate) fn new_max_samples<TWriter: 'static + WriteSeek>(
+        mut writer: TWriter,
+        header: WavHeader,
+        max_samples: usize,
+    ) -> Result<OpenWavWriter> {
+        writer.write_str("data")?;
+        writer.write_u32(0)?;
+
         let data_start = writer.stream_position()? as usize;
 
         Ok(OpenWavWriter {
@@ -46,6 +62,7 @@ impl OpenWavWriter {
             data_start,
             chunk_size_written: false,
             samples_written: 0,
+            max_samples
         })
     }
 
@@ -71,7 +88,7 @@ impl OpenWavWriter {
 
     /// The maximum number of samples that can be written without exceeding the 4GB limit
     pub fn max_samples(&self) -> usize {
-        self.header.max_samples
+        self.max_samples
     }
 }
 
