@@ -17,7 +17,7 @@ pub struct OpenWavWriter {
     header: WavHeader,
     data_start: usize,
     chunk_size_written: bool,
-    samples_written: usize
+    samples_written: usize,
 }
 
 /// An open random access wav writer
@@ -45,7 +45,7 @@ impl OpenWavWriter {
             header,
             data_start,
             chunk_size_written: false,
-            samples_written: 0
+            samples_written: 0,
         })
     }
 

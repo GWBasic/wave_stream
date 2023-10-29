@@ -617,9 +617,9 @@ impl Channels {
 
 #[cfg(test)]
 mod tests {
+    use super::calculate_max_samples;
     use crate::Channels;
     use crate::SampleFormat;
-    use super::calculate_max_samples;
 
     #[test]
     fn calculate_max_samples_sanity() {
@@ -651,6 +651,5 @@ mod tests {
         // 4294967271 / 18 / 4
         // 59652323
         assert_eq!(59652323, max_samples);
-
     }
 }
