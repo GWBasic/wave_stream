@@ -62,7 +62,7 @@ impl OpenWavWriter {
             data_start,
             chunk_size_written: false,
             samples_written: 0,
-            max_samples
+            max_samples,
         })
     }
 

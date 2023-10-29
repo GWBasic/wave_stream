@@ -353,7 +353,7 @@ pub fn write_wav<TWriter: 'static + Write + Seek>(
 mod tests {
     use std::fmt::Debug;
     use std::i8;
-    use std::io::{Take, Cursor};
+    use std::io::{Cursor, Take};
 
     use tempfile::tempdir;
 
