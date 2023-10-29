@@ -449,7 +449,7 @@ impl WavHeader {
     }
 }
 
-fn calculate_max_samples(channels: &Channels, sample_format: SampleFormat) -> usize {
+pub fn calculate_max_samples(channels: &Channels, sample_format: SampleFormat) -> usize {
     let channels_count = channels.count() as u32;
     let bytes_per_sample = sample_format.bytes_per_sample() as u32;
     let max_samples = (u32::MAX - 32 + 8) / channels_count / bytes_per_sample;
@@ -612,5 +612,45 @@ impl Channels {
         }
 
         channel_mask
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Channels;
+    use crate::SampleFormat;
+    use super::calculate_max_samples;
+
+    #[test]
+    fn calculate_max_samples_sanity() {
+        let channels = Channels {
+            front_left: true,
+            front_right: true,
+            front_center: true,
+            low_frequency: true,
+            back_left: true,
+            back_right: true,
+            front_left_of_center: true,
+            front_right_of_center: true,
+            back_center: true,
+            side_left: true,
+            side_right: true,
+            top_center: true,
+            top_front_left: true,
+            top_front_center: true,
+            top_front_right: true,
+            top_back_left: true,
+            top_back_center: true,
+            top_back_right: true,
+        };
+
+        let max_samples = calculate_max_samples(&channels, SampleFormat::Float);
+
+        // 4294967295
+        // (u32::MAX - 32 + 8) / channels_count / bytes_per_sample;
+        // 4294967271 / 18 / 4
+        // 59652323
+        assert_eq!(59652323, max_samples);
+
     }
 }

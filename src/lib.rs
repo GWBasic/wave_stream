@@ -838,11 +838,6 @@ mod tests {
     }
 
     #[test]
-    fn calculate_max_samples_max_samples() {
-        assert!(false, "Incomplete");
-    }
-
-    #[test]
     fn write_random_i8() {
         write_random(
             SampleFormat::Int8,
