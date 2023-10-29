@@ -1,8 +1,10 @@
 use std::io::{Result, Seek, SeekFrom, Write};
 
+use crate::calculate_max_samples;
 use crate::open_wav::OpenWav;
 use crate::wave_header::Channels;
 use crate::SampleFormat;
+use crate::SampleFormatSize;
 use crate::WavHeader;
 use crate::WriteEx;
 
@@ -17,6 +19,7 @@ pub struct OpenWavWriter {
     data_start: usize,
     chunk_size_written: bool,
     samples_written: usize,
+    max_samples: usize,
 }
 
 /// An open random access wav writer
@@ -31,8 +34,19 @@ impl OpenWavWriter {
     /// * 'writer' - The (Write + Seek) struct to write the wav into. It is strongly recommended that this struct implement some form of buffering, such as via a BufWriter
     /// * 'header' - The header that represents the desired sampling rate and bit depth
     pub fn new<TWriter: 'static + WriteSeek>(
+        writer: TWriter,
+        header: WavHeader,
+    ) -> Result<OpenWavWriter> {
+        let max_samples = calculate_max_samples(&header.channels, header.sample_format);
+
+        return OpenWavWriter::new_max_samples(writer, header, max_samples);
+    }
+
+    /// Intended to support testing max_samples
+    pub(crate) fn new_max_samples<TWriter: 'static + WriteSeek>(
         mut writer: TWriter,
         header: WavHeader,
+        max_samples: usize,
     ) -> Result<OpenWavWriter> {
         writer.write_str("data")?;
         writer.write_u32(0)?;
@@ -45,6 +59,7 @@ impl OpenWavWriter {
             data_start,
             chunk_size_written: false,
             samples_written: 0,
+            max_samples,
         })
     }
 
@@ -67,6 +82,11 @@ impl OpenWavWriter {
 
         Ok(())
     }
+
+    /// The maximum number of samples that can be written without exceeding the 4GB limit
+    pub fn max_samples(&self) -> usize {
+        self.max_samples
+    }
 }
 
 impl OpenWav for OpenWavWriter {
@@ -87,16 +107,11 @@ impl OpenWav for OpenWavWriter {
     }
 
     fn bits_per_sample(&self) -> u16 {
-        self.bytes_per_sample() * 8
+        self.header.sample_format.bits_per_sample()
     }
 
     fn bytes_per_sample(&self) -> u16 {
-        match self.header.sample_format {
-            SampleFormat::Float => 4,
-            SampleFormat::Int24 => 3,
-            SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1,
-        }
+        self.header.sample_format.bytes_per_sample()
     }
 
     fn len_samples(&self) -> usize {

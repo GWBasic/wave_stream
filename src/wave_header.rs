@@ -19,8 +19,31 @@ pub enum SampleFormat {
     Float,
 }
 
+pub trait SampleFormatSize {
+    /// The number of bits in each sample
+    fn bits_per_sample(&self) -> u16;
+
+    /// The number of bytes in each sample
+    fn bytes_per_sample(&self) -> u16;
+}
+
+impl SampleFormatSize for SampleFormat {
+    fn bits_per_sample(&self) -> u16 {
+        self.bytes_per_sample() * 8
+    }
+
+    fn bytes_per_sample(&self) -> u16 {
+        match self {
+            SampleFormat::Float => 4,
+            SampleFormat::Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1,
+        }
+    }
+}
+
 // Flags of all of the channels present in the file
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Channels {
     pub front_left: bool,
     pub front_right: bool,
@@ -176,6 +199,7 @@ impl Channels {
 }
 
 // Wav file header. Used to specify wav parameters when creating a wav, or to query wav parameters when reading a wav
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct WavHeader {
     /// The sample format
     pub sample_format: SampleFormat,
@@ -254,28 +278,30 @@ impl WavHeader {
         // (By now we're read 16 bytes)
         reader.skip((*subchunk_size - 16) as usize)?;
 
+        let channels = Channels {
+            front_left: num_channels >= 1,
+            front_right: num_channels >= 2,
+            front_center: num_channels >= 3,
+            low_frequency: num_channels >= 4,
+            back_left: num_channels >= 5,
+            back_right: num_channels >= 6,
+            front_left_of_center: num_channels >= 7,
+            front_right_of_center: num_channels >= 8,
+            back_center: num_channels >= 9,
+            side_left: num_channels >= 10,
+            side_right: num_channels >= 11,
+            top_center: num_channels >= 12,
+            top_front_left: num_channels >= 13,
+            top_front_center: num_channels >= 14,
+            top_front_right: num_channels >= 15,
+            top_back_left: num_channels >= 16,
+            top_back_center: num_channels >= 17,
+            top_back_right: num_channels >= 18,
+        };
+
         Ok(WavHeader {
             sample_format,
-            channels: Channels {
-                front_left: num_channels >= 1,
-                front_right: num_channels >= 2,
-                front_center: num_channels >= 3,
-                low_frequency: num_channels >= 4,
-                back_left: num_channels >= 5,
-                back_right: num_channels >= 6,
-                front_left_of_center: num_channels >= 7,
-                front_right_of_center: num_channels >= 8,
-                back_center: num_channels >= 9,
-                side_left: num_channels >= 10,
-                side_right: num_channels >= 11,
-                top_center: num_channels >= 12,
-                top_front_left: num_channels >= 13,
-                top_front_center: num_channels >= 14,
-                top_front_right: num_channels >= 15,
-                top_back_left: num_channels >= 16,
-                top_back_center: num_channels >= 17,
-                top_back_right: num_channels >= 18,
-            },
+            channels,
             sample_rate,
         })
     }
@@ -414,6 +440,14 @@ impl WavHeader {
 
         Ok(())
     }
+}
+
+pub fn calculate_max_samples(channels: &Channels, sample_format: SampleFormat) -> usize {
+    let channels_count = channels.count() as u32;
+    let bytes_per_sample = sample_format.bytes_per_sample() as u32;
+    let max_samples = (u32::MAX - 32 + 8) / channels_count / bytes_per_sample;
+
+    max_samples as usize
 }
 
 impl Channels {
@@ -571,5 +605,44 @@ impl Channels {
         }
 
         channel_mask
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::calculate_max_samples;
+    use crate::Channels;
+    use crate::SampleFormat;
+
+    #[test]
+    fn calculate_max_samples_sanity() {
+        let channels = Channels {
+            front_left: true,
+            front_right: true,
+            front_center: true,
+            low_frequency: true,
+            back_left: true,
+            back_right: true,
+            front_left_of_center: true,
+            front_right_of_center: true,
+            back_center: true,
+            side_left: true,
+            side_right: true,
+            top_center: true,
+            top_front_left: true,
+            top_front_center: true,
+            top_front_right: true,
+            top_back_left: true,
+            top_back_center: true,
+            top_back_right: true,
+        };
+
+        let max_samples = calculate_max_samples(&channels, SampleFormat::Float);
+
+        // 4294967295
+        // (u32::MAX - 32 + 8) / channels_count / bytes_per_sample;
+        // 4294967271 / 18 / 4
+        // 59652323
+        assert_eq!(59652323, max_samples);
     }
 }

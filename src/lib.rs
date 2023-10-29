@@ -9,6 +9,9 @@
 //! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
 //! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
 //!
+//! Note: The wav file format is limited to no more then 4GB. Wave_stream does not support proposed extensions
+//! to the wav file format that exceed this limitation.
+//!
 //! # Example
 //!
 //! ``` rust
@@ -349,7 +352,8 @@ pub fn write_wav<TWriter: 'static + Write + Seek>(
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
-    use std::io::Take;
+    use std::i8;
+    use std::io::{Cursor, Take};
 
     use tempfile::tempdir;
 
@@ -1167,6 +1171,78 @@ mod tests {
     }
 
     #[test]
+    fn write_random_max_samples() {
+        test_with_file(Box::new(move |_path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Int8,
+                channels: Channels {
+                    front_left: false,
+                    front_right: false,
+                    front_center: true,
+                    low_frequency: false,
+                    back_left: false,
+                    back_right: false,
+                    front_left_of_center: false,
+                    front_right_of_center: false,
+                    back_center: false,
+                    side_left: false,
+                    side_right: false,
+                    top_center: false,
+                    top_front_left: false,
+                    top_front_center: false,
+                    top_front_right: false,
+                    top_back_left: false,
+                    top_back_center: false,
+                    top_back_right: false,
+                },
+                sample_rate: 96000,
+            };
+
+            //let open_wav = write_wav_to_file_path(path, header)?;
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header, 1)?;
+            let mut writer = open_wav.get_random_access_i8_writer()?;
+
+            let samples_by_channel = SamplesByChannel::<i8> {
+                front_left: None,
+                front_right: None,
+                front_center: Some(1),
+                low_frequency: None,
+                back_left: None,
+                back_right: None,
+                front_left_of_center: None,
+                front_right_of_center: None,
+                back_center: None,
+                side_left: None,
+                side_right: None,
+                top_center: None,
+                top_front_left: None,
+                top_front_center: None,
+                top_front_right: None,
+                top_back_left: None,
+                top_back_center: None,
+                top_back_right: None,
+            };
+            writer.write_samples(0, samples_by_channel.clone())?;
+
+            let err = writer
+                .write_samples(1, samples_by_channel.clone())
+                .expect_err("Writing at the max length should fail");
+
+            assert_eq!(ErrorKind::Unsupported, err.kind());
+
+            let err = writer
+                .write_samples(2, samples_by_channel)
+                .expect_err("Writing beyond the max length should fail");
+
+            assert_eq!(ErrorKind::Unsupported, err.kind());
+
+            Ok(())
+        }));
+    }
+
+    #[test]
     fn write_stream_i8() {
         write_stream(
             Path::new("test_data/short_8.wav"),
@@ -1326,6 +1402,93 @@ mod tests {
                     "Wrong value for sample {sample_ctr}"
                 );
             }
+
+            Ok(())
+        }));
+    }
+
+    #[test]
+    fn write_stream_max_samples() {
+        test_with_file(Box::new(move |_path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Int8,
+                channels: Channels {
+                    front_left: false,
+                    front_right: false,
+                    front_center: true,
+                    low_frequency: false,
+                    back_left: false,
+                    back_right: false,
+                    front_left_of_center: false,
+                    front_right_of_center: false,
+                    back_center: false,
+                    side_left: false,
+                    side_right: false,
+                    top_center: false,
+                    top_front_left: false,
+                    top_front_center: false,
+                    top_front_right: false,
+                    top_back_left: false,
+                    top_back_center: false,
+                    top_back_right: false,
+                },
+                sample_rate: 96000,
+            };
+
+            let samples_by_channel = SamplesByChannel::<i8> {
+                front_left: None,
+                front_right: None,
+                front_center: Some(1),
+                low_frequency: None,
+                back_left: None,
+                back_right: None,
+                front_left_of_center: None,
+                front_right_of_center: None,
+                back_center: None,
+                side_left: None,
+                side_right: None,
+                top_center: None,
+                top_front_left: None,
+                top_front_center: None,
+                top_front_right: None,
+                top_back_left: None,
+                top_back_center: None,
+                top_back_right: None,
+            };
+
+            // (Should work) Write a 1-sample file
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header.clone(), 1)?;
+            let samples = vec![Ok(samples_by_channel.clone())];
+            open_wav.write_all_i8(samples.into_iter())?;
+
+            // (Should fail) Write a 2-sample file
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header.clone(), 1)?;
+            let samples = vec![
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel.clone()),
+            ];
+            let err = open_wav
+                .write_all_i8(samples.into_iter())
+                .expect_err("Should not be able to exceed the supported file length");
+            assert_eq!(ErrorKind::Unsupported, err.kind());
+
+            // (Should fail) Write a 3-sample file
+            let buffer: Vec<u8> = Vec::new();
+            let cursor = Cursor::new(buffer);
+            let open_wav = OpenWavWriter::new_max_samples(cursor, header, 1)?;
+            let samples = vec![
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel),
+            ];
+            let err = open_wav
+                .write_all_i8(samples.into_iter())
+                .expect_err("Should not be able to exceed the supported file length");
+            assert_eq!(ErrorKind::Unsupported, err.kind());
 
             Ok(())
         }));
