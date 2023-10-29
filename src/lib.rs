@@ -8,7 +8,7 @@
 //! appending existing 16-bit, 24-bit, or 8-bit waves files.) wave_stream does not implement any way to
 //! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
 //! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
-//! 
+//!
 //! Note: The wav file format is limited to no more then 4GB. Wave_stream does not support proposed extensions
 //! to the wav file format that exceed this limitation.
 //!
@@ -352,6 +352,7 @@ pub fn write_wav<TWriter: 'static + Write + Seek>(
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
+    use std::i8;
     use std::io::Take;
 
     use tempfile::tempdir;
@@ -791,7 +792,7 @@ mod tests {
                     .back_left()
                     .back_right(),
                 sample_rate: 96000,
-                max_samples: 9600
+                max_samples: 9600,
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
 
@@ -1166,6 +1167,75 @@ mod tests {
                     "Wrong sample read at {sample}, channel top_back_right"
                 );
             }
+
+            Ok(())
+        }));
+    }
+
+    #[test]
+    fn write_random_max_samples() {
+        test_with_file(Box::new(move |path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Int8,
+                channels: Channels {
+                    front_left: false,
+                    front_right: false,
+                    front_center: true,
+                    low_frequency: false,
+                    back_left: false,
+                    back_right: false,
+                    front_left_of_center: false,
+                    front_right_of_center: false,
+                    back_center: false,
+                    side_left: false,
+                    side_right: false,
+                    top_center: false,
+                    top_front_left: false,
+                    top_front_center: false,
+                    top_front_right: false,
+                    top_back_left: false,
+                    top_back_center: false,
+                    top_back_right: false,
+                },
+                sample_rate: 96000,
+                max_samples: 1,
+            };
+            let open_wav = write_wav_to_file_path(path, header)?;
+            let mut writer = open_wav.get_random_access_i8_writer()?;
+
+            let samples_by_channel = SamplesByChannel::<i8> {
+                front_left: None,
+                front_right: None,
+                front_center: Some(1),
+                low_frequency: None,
+                back_left: None,
+                back_right: None,
+                front_left_of_center: None,
+                front_right_of_center: None,
+                back_center: None,
+                side_left: None,
+                side_right: None,
+                top_center: None,
+                top_front_left: None,
+                top_front_center: None,
+                top_front_right: None,
+                top_back_left: None,
+                top_back_center: None,
+                top_back_right: None,
+            };
+            writer.write_samples(0, samples_by_channel.clone())?;
+
+            let err = writer
+                .write_samples(1, samples_by_channel.clone())
+                .expect_err("Writing at the max length should fail");
+
+            assert_eq!(ErrorKind::Unsupported, err.kind());
+
+            let err = writer
+                .write_samples(2, samples_by_channel)
+                .expect_err("Writing beyond the max length should fail");
+
+            assert_eq!(ErrorKind::Unsupported, err.kind());
 
             Ok(())
         }));
