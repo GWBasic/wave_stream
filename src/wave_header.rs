@@ -19,6 +19,29 @@ pub enum SampleFormat {
     Float,
 }
 
+pub trait SampleFormatSize {
+    /// The number of bits in each sample
+    fn bits_per_sample(&self) -> u16;
+
+    /// The number of bytes in each sample
+    fn bytes_per_sample(&self) -> u16;
+}
+
+impl SampleFormatSize for SampleFormat {
+    fn bits_per_sample(&self) -> u16 {
+        self.bytes_per_sample() * 8
+    }
+
+    fn bytes_per_sample(&self) -> u16 {
+        match self {
+            SampleFormat::Float => 4,
+            SampleFormat::Int24 => 3,
+            SampleFormat::Int16 => 2,
+            SampleFormat::Int8 => 1,
+        }
+    }
+}
+
 // Flags of all of the channels present in the file
 #[derive(Debug, Clone, PartialEq)]
 pub struct Channels {
@@ -186,6 +209,7 @@ pub struct WavHeader {
     // Note: This may be needed to signal that a wav is an oddball bits per second: 12, 20, ect
     // (Samples are always aligned on the byte, IE, that's why 8-bit, 16-bit, and 24-bit int, and 32-bit float are supported)
     //pub bits_per_sample: u16
+    pub max_samples: usize
 }
 
 impl WavHeader {
@@ -254,29 +278,34 @@ impl WavHeader {
         // (By now we're read 16 bytes)
         reader.skip((*subchunk_size - 16) as usize)?;
 
+        let channels = Channels {
+            front_left: num_channels >= 1,
+            front_right: num_channels >= 2,
+            front_center: num_channels >= 3,
+            low_frequency: num_channels >= 4,
+            back_left: num_channels >= 5,
+            back_right: num_channels >= 6,
+            front_left_of_center: num_channels >= 7,
+            front_right_of_center: num_channels >= 8,
+            back_center: num_channels >= 9,
+            side_left: num_channels >= 10,
+            side_right: num_channels >= 11,
+            top_center: num_channels >= 12,
+            top_front_left: num_channels >= 13,
+            top_front_center: num_channels >= 14,
+            top_front_right: num_channels >= 15,
+            top_back_left: num_channels >= 16,
+            top_back_center: num_channels >= 17,
+            top_back_right: num_channels >= 18,
+        };
+
+        let max_samples = calculate_max_samples(&channels, sample_format);
+
         Ok(WavHeader {
             sample_format,
-            channels: Channels {
-                front_left: num_channels >= 1,
-                front_right: num_channels >= 2,
-                front_center: num_channels >= 3,
-                low_frequency: num_channels >= 4,
-                back_left: num_channels >= 5,
-                back_right: num_channels >= 6,
-                front_left_of_center: num_channels >= 7,
-                front_right_of_center: num_channels >= 8,
-                back_center: num_channels >= 9,
-                side_left: num_channels >= 10,
-                side_right: num_channels >= 11,
-                top_center: num_channels >= 12,
-                top_front_left: num_channels >= 13,
-                top_front_center: num_channels >= 14,
-                top_front_right: num_channels >= 15,
-                top_back_left: num_channels >= 16,
-                top_back_center: num_channels >= 17,
-                top_back_right: num_channels >= 18,
-            },
+            channels,
             sample_rate,
+            max_samples
         })
     }
 
@@ -349,10 +378,13 @@ impl WavHeader {
             ));
         }
 
+        let max_samples = calculate_max_samples(&channels, sample_format);
+
         Ok(WavHeader {
             sample_format,
             channels,
             sample_rate,
+            max_samples
         })
     }
 
@@ -414,6 +446,14 @@ impl WavHeader {
 
         Ok(())
     }
+}
+
+fn calculate_max_samples(channels: &Channels, sample_format: SampleFormat) -> usize {
+    let channels_count = channels.count() as u32;
+    let bytes_per_sample = sample_format.bytes_per_sample() as u32;
+    let max_samples = (u32::MAX - 32 + 8) / channels_count / bytes_per_sample;
+
+    max_samples as usize
 }
 
 impl Channels {

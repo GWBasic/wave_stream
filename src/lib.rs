@@ -8,6 +8,9 @@
 //! appending existing 16-bit, 24-bit, or 8-bit waves files.) wave_stream does not implement any way to
 //! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
 //! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
+//! 
+//! Note: The wav file format is limited to no more then 4GB. Wave_stream does not support proposed extensions
+//! to the wav file format that exceed this limitation.
 //!
 //! # Example
 //!
@@ -788,6 +791,7 @@ mod tests {
                     .back_left()
                     .back_right(),
                 sample_rate: 96000,
+                max_samples: 9600
             };
             let mut open_wav = write_wav_to_file_path(path, header)?;
 
@@ -1006,6 +1010,7 @@ mod tests {
                     top_back_right: true,
                 },
                 sample_rate: 96000,
+                max_samples: 9600,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
             let mut writer = get_random_access_writer(open_wav)?;
@@ -1300,6 +1305,7 @@ mod tests {
                 sample_format,
                 channels: source_wav.channels().clone(),
                 sample_rate: source_wav.sample_rate(),
+                max_samples: 9600,
             };
             let open_wav = write_wav_to_file_path(path, header)?;
 

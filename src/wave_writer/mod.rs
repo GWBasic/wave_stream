@@ -3,6 +3,7 @@ use std::io::{Result, Seek, SeekFrom, Write};
 use crate::open_wav::OpenWav;
 use crate::wave_header::Channels;
 use crate::SampleFormat;
+use crate::SampleFormatSize;
 use crate::WavHeader;
 use crate::WriteEx;
 
@@ -16,7 +17,7 @@ pub struct OpenWavWriter {
     header: WavHeader,
     data_start: usize,
     chunk_size_written: bool,
-    samples_written: usize,
+    samples_written: usize
 }
 
 /// An open random access wav writer
@@ -44,7 +45,7 @@ impl OpenWavWriter {
             header,
             data_start,
             chunk_size_written: false,
-            samples_written: 0,
+            samples_written: 0
         })
     }
 
@@ -87,16 +88,11 @@ impl OpenWav for OpenWavWriter {
     }
 
     fn bits_per_sample(&self) -> u16 {
-        self.bytes_per_sample() * 8
+        self.header.sample_format.bits_per_sample()
     }
 
     fn bytes_per_sample(&self) -> u16 {
-        match self.header.sample_format {
-            SampleFormat::Float => 4,
-            SampleFormat::Int24 => 3,
-            SampleFormat::Int16 => 2,
-            SampleFormat::Int8 => 1,
-        }
+        self.header.sample_format.bytes_per_sample()
     }
 
     fn len_samples(&self) -> usize {
