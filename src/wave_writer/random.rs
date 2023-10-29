@@ -293,6 +293,11 @@ impl<T> RandomAccessWavWriter<T> {
     pub fn flush(&mut self) -> Result<()> {
         self.open_wav.flush()
     }
+
+    /// The maximum number of samples that can be written without exceeding the 4GB limit
+    pub fn max_samples(&self) -> usize {
+        self.open_wav.max_samples()
+    }
 }
 
 unsafe impl<T> Send for RandomAccessWavWriter<T> {}

@@ -68,6 +68,11 @@ impl OpenWavWriter {
 
         Ok(())
     }
+
+    /// The maximum number of samples that can be written without exceeding the 4GB limit
+    pub fn max_samples(&self) -> usize {
+        self.header.max_samples
+    }
 }
 
 impl OpenWav for OpenWavWriter {
