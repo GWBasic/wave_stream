@@ -107,14 +107,13 @@ impl OpenWavWriter {
         let channels = self.header.channels.clone();
 
         for samples_result in samples_itr {
-
             if self.samples_written >= self.header.max_samples {
                 return Err(Error::new(
                     ErrorKind::Unsupported,
                     "Wav files can only go up to 4GB.",
                 ));
             }
-    
+
             let samples_by_channel = samples_result?;
 
             if channels.front_left {

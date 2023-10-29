@@ -838,6 +838,11 @@ mod tests {
     }
 
     #[test]
+    fn calculate_max_samples_max_samples() {
+        assert!(false, "Incomplete");
+    }
+
+    #[test]
     fn write_random_i8() {
         write_random(
             SampleFormat::Int8,
@@ -1402,6 +1407,88 @@ mod tests {
                     "Wrong value for sample {sample_ctr}"
                 );
             }
+
+            Ok(())
+        }));
+    }
+
+    #[test]
+    fn write_stream_max_samples() {
+        test_with_file(Box::new(move |path| {
+            let header = WavHeader {
+                sample_format: SampleFormat::Int8,
+                channels: Channels {
+                    front_left: false,
+                    front_right: false,
+                    front_center: true,
+                    low_frequency: false,
+                    back_left: false,
+                    back_right: false,
+                    front_left_of_center: false,
+                    front_right_of_center: false,
+                    back_center: false,
+                    side_left: false,
+                    side_right: false,
+                    top_center: false,
+                    top_front_left: false,
+                    top_front_center: false,
+                    top_front_right: false,
+                    top_back_left: false,
+                    top_back_center: false,
+                    top_back_right: false,
+                },
+                sample_rate: 96000,
+                max_samples: 1,
+            };
+
+            let samples_by_channel = SamplesByChannel::<i8> {
+                front_left: None,
+                front_right: None,
+                front_center: Some(1),
+                low_frequency: None,
+                back_left: None,
+                back_right: None,
+                front_left_of_center: None,
+                front_right_of_center: None,
+                back_center: None,
+                side_left: None,
+                side_right: None,
+                top_center: None,
+                top_front_left: None,
+                top_front_center: None,
+                top_front_right: None,
+                top_back_left: None,
+                top_back_center: None,
+                top_back_right: None,
+            };
+
+            // (Should work) Write a 1-sample file
+            let open_wav = write_wav_to_file_path(path, header.clone())?;
+            let samples = vec![Ok(samples_by_channel.clone())];
+            open_wav.write_all_i8(samples.into_iter())?;
+
+            // (Should fail) Write a 2-sample file
+            let open_wav = write_wav_to_file_path(path, header.clone())?;
+            let samples = vec![
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel.clone()),
+            ];
+            let err = open_wav
+                .write_all_i8(samples.into_iter())
+                .expect_err("Should not be able to exceed the supported file length");
+            assert_eq!(ErrorKind::Unsupported, err.kind());
+
+            // (Should fail) Write a 3-sample file
+            let open_wav = write_wav_to_file_path(path, header)?;
+            let samples = vec![
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel.clone()),
+                Ok(samples_by_channel),
+            ];
+            let err = open_wav
+                .write_all_i8(samples.into_iter())
+                .expect_err("Should not be able to exceed the supported file length");
+            assert_eq!(ErrorKind::Unsupported, err.kind());
 
             Ok(())
         }));

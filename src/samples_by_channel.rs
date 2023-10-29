@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SamplesByChannel<T> {
     pub front_left: Option<T>,
     pub front_right: Option<T>,

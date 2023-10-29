@@ -43,7 +43,7 @@ impl SampleFormatSize for SampleFormat {
 }
 
 // Flags of all of the channels present in the file
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Channels {
     pub front_left: bool,
     pub front_right: bool,
@@ -199,6 +199,7 @@ impl Channels {
 }
 
 // Wav file header. Used to specify wav parameters when creating a wav, or to query wav parameters when reading a wav
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct WavHeader {
     /// The sample format
     pub sample_format: SampleFormat,
@@ -209,7 +210,7 @@ pub struct WavHeader {
     // Note: This may be needed to signal that a wav is an oddball bits per second: 12, 20, ect
     // (Samples are always aligned on the byte, IE, that's why 8-bit, 16-bit, and 24-bit int, and 32-bit float are supported)
     //pub bits_per_sample: u16
-    pub max_samples: usize
+    pub max_samples: usize,
 }
 
 impl WavHeader {
@@ -305,7 +306,7 @@ impl WavHeader {
             sample_format,
             channels,
             sample_rate,
-            max_samples
+            max_samples,
         })
     }
 
@@ -384,7 +385,7 @@ impl WavHeader {
             sample_format,
             channels,
             sample_rate,
-            max_samples
+            max_samples,
         })
     }
 
