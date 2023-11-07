@@ -440,6 +440,10 @@ impl WavHeader {
 
         Ok(())
     }
+
+    pub fn max_samples(&self) -> usize {
+        calculate_max_samples(&self.channels, self.sample_format)
+    }
 }
 
 pub fn calculate_max_samples(channels: &Channels, sample_format: SampleFormat) -> usize {
