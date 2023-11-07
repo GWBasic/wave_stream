@@ -1,6 +1,5 @@
 use std::io::{Result, Seek, SeekFrom, Write};
 
-use crate::calculate_max_samples;
 use crate::open_wav::OpenWav;
 use crate::wave_header::Channels;
 use crate::SampleFormat;
@@ -37,9 +36,7 @@ impl OpenWavWriter {
         writer: TWriter,
         header: WavHeader,
     ) -> Result<OpenWavWriter> {
-        let max_samples = calculate_max_samples(&header.channels, header.sample_format);
-
-        return OpenWavWriter::new_max_samples(writer, header, max_samples);
+        return OpenWavWriter::new_max_samples(writer, header, header.max_samples());
     }
 
     /// Intended to support testing max_samples
