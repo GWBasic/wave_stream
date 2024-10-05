@@ -4,7 +4,7 @@
 //!
 //! Read through the example below to understand how to read a wav's metadata, read the wav, and write a wav.
 //!
-//! It's generally reccomended that you read and write wav files as float (f32). (Unless you're cropping and
+//! It's generally recommended that you read and write wav files as float (f32). (Unless you're cropping and
 //! appending existing 16-bit, 24-bit, or 8-bit waves files.) wave_stream does not implement any way to
 //! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
 //! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
