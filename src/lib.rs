@@ -404,6 +404,44 @@ mod tests {
     }
 
     #[test]
+    fn read_audacity_sanity() {
+        // Attempt to fix https://github.com/GWBasic/wave_stream/issues/34
+        // Audacity outputs 24-bit PCM stereo files
+        let open_wav =
+            read_wav_from_file_path(Path::new("test_data/output_from_audacity.wav")).unwrap();
+        assert_eq!(SampleFormat::Int24, open_wav.sample_format());
+        assert_eq!(2, open_wav.num_channels());
+        assert_eq!(24, open_wav.bits_per_sample());
+        assert_eq!(48000, open_wav.sample_rate());
+
+        // Test reading as f32 (upconverted from 24-bit)
+        let mut wave_reader_float = open_wav.get_random_access_f32_reader().unwrap();
+        assert_eq!(
+            SampleFormat::Int24,
+            wave_reader_float.info().sample_format()
+        );
+        assert_eq!(2, wave_reader_float.info().num_channels());
+        assert_eq!(24, wave_reader_float.info().bits_per_sample());
+        assert_eq!(48000, wave_reader_float.info().sample_rate());
+
+        for sample_ctr in 0..wave_reader_float.info().len_samples() {
+             let actual_sample = wave_reader_float.read_sample(sample_ctr).unwrap();
+             assert!(actual_sample.front_left.is_some(), "Front left missing");
+             assert!(actual_sample.front_right.is_some(), "Front right missing");
+        }
+
+        let open_wav =
+            read_wav_from_file_path(Path::new("test_data/output_from_audacity.wav")).unwrap();
+
+        let wav_iterator = open_wav.get_stream_f32_reader().unwrap().into_iter();
+        for samples_result in wav_iterator {
+            let samples = samples_result.unwrap();
+            assert!(samples.front_left.is_some(), "Front left missing");
+            assert!(samples.front_right.is_some(), "Front right missing");
+        }
+    }
+
+    #[test]
     fn read_random_i8() {
         read_random(
             Path::new("test_data/short_8.wav"),
