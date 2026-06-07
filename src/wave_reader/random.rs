@@ -14,14 +14,14 @@ impl<TReader: Read> private_parts::POpenWavReader for OpenWavReader<TReader> {
         self.data_start
     }
 
-    fn reader(&mut self) -> &mut (dyn Read) {
-        &mut self.reader as &mut (dyn Read)
+    fn reader(&mut self) -> &mut dyn Read {
+        &mut self.reader as &mut dyn Read
     }
 }
 
 impl<TReader: Read + Seek> private_parts::PRandomAccessOpenWavReader for OpenWavReader<TReader> {
-    fn seeker(&mut self) -> &mut (dyn Seek) {
-        &mut self.reader as &mut (dyn Seek)
+    fn seeker(&mut self) -> &mut dyn Seek {
+        &mut self.reader as &mut dyn Seek
     }
 }
 

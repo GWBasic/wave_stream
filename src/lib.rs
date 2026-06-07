@@ -6,7 +6,7 @@
 //!
 //! It's generally recommended that you read and write wav files as float (f32). (Unless you're cropping and
 //! appending existing 16-bit, 24-bit, or 8-bit waves files.) wave_stream does not implement any way to
-//! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author reccomends using
+//! noise-shape or dither floating-point or 24-bit samples to 16-bit or 8-bit. (The author recommends using
 //! sox to convert floating-point wave files to lower bits-per-sample, as sox implements great noise shaping.)
 //!
 //! Note: The wav file format is limited to no more then 4GB. Wave_stream does not support proposed extensions
@@ -56,7 +56,7 @@
 //!     // Downsampling during reads isn't supported. (You can't read a floating point wav file as i8)
 //!     //
 //!     // In general:
-//!     // - For audio manipulation: f32 is *strongly* reccomended
+//!     // - For audio manipulation: f32 is *strongly* recommended
 //!     // - Only use i16, i32, (or i8), when cutting existing audio without manipulation
 //!     let iterator = open_wav.get_stream_f32_reader().unwrap().into_iter();
 //!
@@ -83,7 +83,7 @@
 //!     let open_wav = write_wav_to_file_path(Path::new("ramp.wav"), header).unwrap();
 //!
 //!     // Note that the wave is written as f32 (32-bit float). 8-bit (i8), 16-bit (i16), and 24-bit (i32) integer are
-//!     // also supprted.
+//!     // also supported.
 //!     // Downconverting (IE, float -> 16-bit) is *not* supported. In general, it's best to perform audio manipulation
 //!     // using f32. Outputting to an integer format like 16-bit (CD quality) will only sound good if you implement your
 //!     // own noise shaper or dithering algorithm. A command-line tool like sox will perform excellent noise shaping if

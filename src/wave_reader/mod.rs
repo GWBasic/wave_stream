@@ -96,11 +96,11 @@ mod private_parts {
 
     pub trait POpenWavReader: super::OpenWav {
         fn data_start(&self) -> usize;
-        fn reader(&mut self) -> &mut (dyn Read);
+        fn reader(&mut self) -> &mut dyn Read;
     }
 
     pub trait PRandomAccessOpenWavReader: POpenWavReader {
-        fn seeker(&mut self) -> &mut (dyn Seek);
+        fn seeker(&mut self) -> &mut dyn Seek;
     }
 }
 

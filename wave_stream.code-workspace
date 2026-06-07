@@ -6,7 +6,12 @@
 	],
 	"settings": {
 		"cSpell.words": [
-			"downsampling"
+			"Downconverting",
+			"downsampling",
+			"subchunk",
+			"tempwav",
+			"upconvert",
+			"upconverted"
 		]
 	}
 }
