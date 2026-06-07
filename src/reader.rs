@@ -39,16 +39,8 @@ where
     }
 
     fn read_fixed_size(&mut self, buf: &mut [u8]) -> Result<()> {
-        let bytes_read = self.read(buf)?;
-
-        if bytes_read == buf.len() {
-            Ok(())
-        } else {
-            Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                "Unexpected end of file",
-            ))
-        }
+        self.read_exact(buf)?;
+        Ok(())
     }
 
     fn read_str(&mut self, len: usize) -> Result<String> {
