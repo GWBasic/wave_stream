@@ -424,6 +424,7 @@ mod tests {
         assert_eq!(24, wave_reader_float.info().bits_per_sample());
         assert_eq!(48000, wave_reader_float.info().sample_rate());
 
+        let len_samples = wave_reader_float.info().len_samples();
         for sample_ctr in 0..wave_reader_float.info().len_samples() {
              let actual_sample = wave_reader_float.read_sample(sample_ctr).unwrap();
              assert!(actual_sample.front_left.is_some(), "Front left missing");
@@ -434,11 +435,15 @@ mod tests {
             read_wav_from_file_path(Path::new("test_data/output_from_audacity.wav")).unwrap();
 
         let wav_iterator = open_wav.get_stream_f32_reader().unwrap().into_iter();
+        let mut num_samples_from_iterator = 0;
         for samples_result in wav_iterator {
             let samples = samples_result.unwrap();
             assert!(samples.front_left.is_some(), "Front left missing");
             assert!(samples.front_right.is_some(), "Front right missing");
+            num_samples_from_iterator += 1;
         }
+
+        assert_eq!(len_samples, num_samples_from_iterator, "Iterator returned wrong number of samples");
     }
 
     #[test]
