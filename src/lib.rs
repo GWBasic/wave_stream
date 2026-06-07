@@ -426,9 +426,9 @@ mod tests {
 
         let len_samples = wave_reader_float.info().len_samples();
         for sample_ctr in 0..wave_reader_float.info().len_samples() {
-             let actual_sample = wave_reader_float.read_sample(sample_ctr).unwrap();
-             assert!(actual_sample.front_left.is_some(), "Front left missing");
-             assert!(actual_sample.front_right.is_some(), "Front right missing");
+            let actual_sample = wave_reader_float.read_sample(sample_ctr).unwrap();
+            assert!(actual_sample.front_left.is_some(), "Front left missing");
+            assert!(actual_sample.front_right.is_some(), "Front right missing");
         }
 
         let open_wav =
@@ -443,7 +443,10 @@ mod tests {
             num_samples_from_iterator += 1;
         }
 
-        assert_eq!(len_samples, num_samples_from_iterator, "Iterator returned wrong number of samples");
+        assert_eq!(
+            len_samples, num_samples_from_iterator,
+            "Iterator returned wrong number of samples"
+        );
     }
 
     #[test]
